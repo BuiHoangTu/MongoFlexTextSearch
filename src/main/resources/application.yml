@@ -1,0 +1,14 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: MongoFlexFullTextSearch
+  data:
+    mongodb:
+      host: ${MONGODB_HOST}
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      port: ${MONGODB_PORT}
+      database: text_search
+      authentication-database: ${MONGODB_AUTH_DB}
