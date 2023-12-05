@@ -12,3 +12,16 @@ spring:
       port: ${MONGODB_PORT}
       database: text_search
       authentication-database: ${MONGODB_AUTH_DB}
+
+special:
+  org:
+    watching:
+      database:
+        - north:
+            collection: name
+            text_field:
+              - amo_type
+              - amo_source
+        - east:
+            collection: name
+            text_field: air_craft
