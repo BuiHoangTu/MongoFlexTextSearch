@@ -16,12 +16,14 @@ spring:
 special:
   org:
     watching:
-      database:
-        - north:
-            collection: name
-            text_field:
+      databases:
+        database_name:
+          collection_name:
+            text_fields:
               - amo_type
               - amo_source
-        - east:
-            collection: name
-            text_field: air_craft
+          name2:
+            textFields: other_text
+        north:
+          name:
+            textFields: air_craft

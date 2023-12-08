@@ -14,7 +14,7 @@ public class TextSearchService {
     }
 
 
-    public JsonObject searchTextWithAllWordCount(String searchPhrase) {
+    public JsonObject searchTextWithAllWordCount(String searchPhrase, int limit) {
         var dbWords = this.database.getWordsCount();
         for (var wordJson : dbWords) {
             var word = wordJson.asDocument().getString("word");

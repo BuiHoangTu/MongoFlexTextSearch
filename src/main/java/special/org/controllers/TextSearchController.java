@@ -26,7 +26,7 @@ public class TextSearchController {
     /** */
     @GetMapping(path = "precise")  
     public ResponseEntity<JsonObject> searchFullTextPrecise(@RequestParam(value = "searchPhrase") String searchPhrase) {
-        JsonObject res = service.searchTextWithAllWordCount(searchPhrase);
+        JsonObject res = service.searchTextWithAllWordCount(searchPhrase, 3);
         OPEN_CONTROLLER_LOG.info("combine-reduced-search got keyText:" + searchPhrase);
         OPEN_CONTROLLER_LOG.info(res.toString());
         return ResponseEntity.ok(res);
