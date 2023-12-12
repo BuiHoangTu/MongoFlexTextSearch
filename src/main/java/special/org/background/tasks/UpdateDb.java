@@ -5,24 +5,23 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import special.org.models.ResourceWatcher;
+import special.org.configs.ResourceWatching;
 
 @Service
 public class UpdateDb {
     private static final Logger LOGGER_UPDATE_DB = LoggerFactory.getLogger(UpdateDb.class);
-    private final ResourceWatcher resourceWatcher;
+    private final ResourceWatching resourceWatching;
 
     @Autowired
-    public UpdateDb(ResourceWatcher resourceWatcher) {
-        this.resourceWatcher = resourceWatcher;
+    public UpdateDb(ResourceWatching resourceWatching) {
+        this.resourceWatching = resourceWatching;
     }
 
     @Scheduled(fixedRate = 30_000) // ms
     public void updateDB() {
-        var rs = resourceWatcher.get();
-        final String key = "north";
+        var rs = resourceWatching.getDatabases();
 
-        LOGGER_UPDATE_DB.error("Printing database " + key + " :" + rs.get(key).toString());
+//        LOGGER_UPDATE_DB.error("Printing database " + rs.entrySet());
 //        for (var dbEntry : rs.entrySet()) {
 //            LOGGER_UPDATE_DB.error("Database {}: ", dbEntry.getKey());
 //

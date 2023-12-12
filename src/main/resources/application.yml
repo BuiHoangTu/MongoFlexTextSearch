@@ -16,14 +16,20 @@ spring:
 special:
   org:
     watching:
+      database_path: $DATABASE_PATH
+
       databases:
-        database_name:
-          collection_name:
+        database_name1:
+          -
+            collection_name: name
             text_fields:
               - amo_type
               - amo_source
-          name2:
-            textFields: other_text
+          -
+            collection_name: name
+            text_fields:
+              - other_text
         north:
-          name:
-            textFields: air_craft
+          -
+            collection_name: name
+            text_fields: air_craft
