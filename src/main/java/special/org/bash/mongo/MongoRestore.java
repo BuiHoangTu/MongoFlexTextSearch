@@ -6,10 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import special.org.configs.ResourceMongo;
+import special.org.configs.ResourceWatchingCollection;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.List;
 
 @Service
 public class MongoRestore {
@@ -30,32 +32,20 @@ public class MongoRestore {
         }
     }
 
-    public void restore(String dbName, Path dbFolder) {
+    public void restoreDatabase(String dbName, String dbFolderStr, List<ResourceWatchingCollection> collectionsEntry) {
         try {
             // Create a process builder with the executable path
             ProcessBuilder processBuilder = new ProcessBuilder(exePath);
 
             // add params
             var command = processBuilder.command();
-            // host
-            command.add("--host ");
-            command.add(resourceMongo.getHost());
-            // username
-            command.add("-u");
-            command.add(resourceMongo.getUsername());
-            // password
-            command.add("-p");
-            command.add(resourceMongo.getPassword());
-            // auth database
-            command.add("--authenticationDatabase");
-            command.add(resourceMongo.getAuthenticationDatabase());
-
+            this.addAuthParams(command);
             // add restored db
             command.add("--db");
             command.add(dbName);
             // add path
             command.add("--dir");
-            command.add(dbFolder.toAbsolutePath().toString());
+            command.add(dbFolderStr);
 
             // redirect error to output to log
             processBuilder.redirectErrorStream(true);
@@ -72,5 +62,56 @@ public class MongoRestore {
         } catch (IOException e) {
             LOGGER_MONGO_RESTORE.error("Can't execute restore", e);
         }
+    }
+
+    public void restoreCollection(String dbName, String collectionName, String collectionBsonPathStr) {
+        try {
+            // Create a process builder with the executable path
+            ProcessBuilder processBuilder = new ProcessBuilder(exePath);
+
+            // add params
+            var command = processBuilder.command();
+            this.addAuthParams(command);
+            // add restored db
+            command.add("--db");
+            command.add(dbName);
+            // add collection name
+            command.add("--collection");
+            command.add(collectionName);
+            // add path
+            command.add("--dir");
+            command.add(collectionBsonPathStr);
+
+            // redirect error to output to log
+            processBuilder.redirectErrorStream(true);
+
+
+            // Start the process
+            Process process = processBuilder.start();
+
+            // log output
+            try (InputStream inputStream = process.getInputStream();) {
+                LOGGER_MONGO_RESTORE.info(new String(inputStream.readAllBytes()));
+            }
+
+        } catch (IOException e) {
+            LOGGER_MONGO_RESTORE.error("Can't execute restore", e);
+        }
+    }
+
+
+    private void addAuthParams(List<String> command) {
+        // host
+        command.add("--host ");
+        command.add(resourceMongo.getHost());
+        // username
+        command.add("-u");
+        command.add(resourceMongo.getUsername());
+        // password
+        command.add("-p");
+        command.add(resourceMongo.getPassword());
+        // auth database
+        command.add("--authenticationDatabase");
+        command.add(resourceMongo.getAuthenticationDatabase());
     }
 }
