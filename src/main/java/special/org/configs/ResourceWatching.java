@@ -19,12 +19,12 @@ public class ResourceWatching {
 
     // ------------db_name----collection_name--text
     private final Map<String, List<ResourceWatchingCollection>> databases;
-    private final String databasePath;
+    private final String databasesPath;
 
     @ConstructorBinding
-    public ResourceWatching(Map<String, List<ResourceWatchingCollection>> databases, Optional<String> databasePath) {
+    public ResourceWatching(Map<String, List<ResourceWatchingCollection>> databases, Optional<String> databasesPath) {
         this.databases = databases;
-        this.databasePath = databasePath.orElse(null);
+        this.databasesPath = databasesPath.orElse(null);
 
     }
 

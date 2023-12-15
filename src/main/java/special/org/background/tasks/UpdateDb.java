@@ -1,21 +1,26 @@
 package special.org.background.tasks;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
+import special.org.bash.mongo.MongoRestore;
 import special.org.configs.ResourceWatching;
+import special.org.configs.ResourceWatchingCollection;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class UpdateDb {
-    private static final Logger LOGGER_UPDATE_DB = LoggerFactory.getLogger(UpdateDb.class);
-    private final ResourceWatching resourceWatching;
     private static final WatchService watchService;
-
+    private static final Logger LOGGER_UPDATE_DB = LoggerFactory.getLogger(UpdateDb.class);
     static {
         try {
             watchService = FileSystems.getDefault().newWatchService();
@@ -25,24 +30,45 @@ public class UpdateDb {
         }
     }
 
+    private final ResourceWatching resourceWatching;
+    private final MongoRestore restore;
+    private final TaskScheduler scheduler;
+
+
     @Autowired
-    public UpdateDb(ResourceWatching resourceWatching) {
+    public UpdateDb(ResourceWatching resourceWatching, MongoRestore restore, TaskScheduler scheduler) {
         this.resourceWatching = resourceWatching;
+        this.restore = restore;
+        this.scheduler = scheduler;
     }
 
-    @Scheduled(fixedRate = 30_000) // 30s after last run finish
+    // run this on start-up
+    @PostConstruct
     public void updateDB() {
-        var folderPath = resourceWatching.getDatabasePath();
+        var rootPath = resourceWatching.getDatabasesPath();
 
-        this.watchFolder(folderPath);
+        Map<String, List<ResourceWatchingCollection>> databases = resourceWatching.getDatabases();
+
+        for (var database : databases.entrySet()) {
+            this.scheduler.scheduleAtFixedRate(
+                    // rootFolder/dbName
+                    () -> {this.watchDatabase(Path.of(rootPath, database.getKey()), database.getValue());},
+                    Duration.ofSeconds(30)
+            );
+        }
+
+//        this.watchFolder(folderPath);
     }
 
-    public void watchFolder(String folderPath) {
+    private void watchDatabase(Path dbFolderPath, List<ResourceWatchingCollection> collectionsEntry) {
+        final List<String> collectionsName = collectionsEntry.stream().map(ResourceWatchingCollection::getCollectionName).toList();
+
         try {
-            Path path = Paths.get(folderPath);
+            // try restore all on start
+            restore.restoreDatabase(dbFolderPath.toFile().getName(), dbFolderPath.toAbsolutePath().toString(), collectionsEntry );
 
             // Register the folder to be watched for create, modify, and delete events
-            path.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE);
+            dbFolderPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY); //, StandardWatchEventKinds.ENTRY_DELETE);
 
             while (true) {
                 // this will block until there are changes so while true is feasible
@@ -51,17 +77,32 @@ public class UpdateDb {
                 for (WatchEvent<?> event : watchKey.pollEvents()) {
                     WatchEvent.Kind<?> kind = event.kind();
 
+                    // data lost somehow
                     if (kind == StandardWatchEventKinds.OVERFLOW) {
                         continue;
                     }
 
                     Path changedPath = (Path) event.context();
-                    String fullPath = path.resolve(changedPath).toString();
+                    File collectionFile = dbFolderPath.resolve(changedPath).toFile();
 
-                    LOGGER_UPDATE_DB.info("File {} has been {}", fullPath, kind);
+                    // not the collection we are watching for
+                    if (!collectionsName.contains(extractCollectionNameFromBsonFile(collectionFile))) {
+                        LOGGER_UPDATE_DB.info("File {} has been {}, but it is not in collections list. Ignored", collectionFile, kind);
+                        continue;
+                    }
 
-                    // Perform your action based on the file change (e.g., print to console)
-                    LOGGER_UPDATE_DB.info(fullPath + kind);
+                    if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+
+                    } else {
+                        // modify
+                    }
+
+
+
+                    var collectionName = extractCollectionNameFromBsonFile(collectionFile);
+                    if (collectionName == null) continue;
+
+                    restore.restoreCollection(dbFolderPath.toFile().getName(), collectionName, collectionFile.getPath());
                 }
 
                 boolean reset = watchKey.reset();
@@ -73,5 +114,16 @@ public class UpdateDb {
         } catch (Exception e) {
             LOGGER_UPDATE_DB.error("Error watching folder", e);
         }
+    }
+
+    private String extractCollectionNameFromBsonFile(File collectionBson) {
+        String collectionFileName = collectionBson.getName();
+        final int lastPos = collectionFileName.lastIndexOf(".bson");
+        if (lastPos <= 0) {
+            LOGGER_UPDATE_DB.error("File {} is not formatable to collection name. Need .bson file", collectionFileName);
+            return null;
+        }
+
+        return collectionFileName.substring(0, lastPos);
     }
 }
