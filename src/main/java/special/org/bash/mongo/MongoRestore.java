@@ -102,7 +102,7 @@ public class MongoRestore {
 
     private void addAuthParams(List<String> command) {
         // host
-        command.add("--host ");
+        command.add("--host");
         command.add(resourceMongo.getHost());
         // username
         command.add("-u");
