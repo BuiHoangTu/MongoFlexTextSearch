@@ -85,8 +85,11 @@ public class UpdateDb {
                     Path changedPath = (Path) event.context();
                     File collectionFile = dbFolderPath.resolve(changedPath).toFile();
 
+                    var collectionName = extractCollectionNameFromBsonFile(collectionFile);
+                    if (collectionName == null) continue;
+
                     // not the collection we are watching for
-                    if (!collectionsName.contains(extractCollectionNameFromBsonFile(collectionFile))) {
+                    if (!collectionsName.contains(collectionName)) {
                         LOGGER_UPDATE_DB.info("File {} has been {}, but it is not in collections list. Ignored", collectionFile, kind);
                         continue;
                     }
@@ -96,11 +99,6 @@ public class UpdateDb {
                     } else {
                         // modify
                     }
-
-
-
-                    var collectionName = extractCollectionNameFromBsonFile(collectionFile);
-                    if (collectionName == null) continue;
 
                     restore.restoreCollection(dbFolderPath.toFile().getName(), collectionName, collectionFile.getPath());
                 }
@@ -112,7 +110,7 @@ public class UpdateDb {
                 }
             }
         } catch (Exception e) {
-            LOGGER_UPDATE_DB.error("Error watching folder", e);
+            LOGGER_UPDATE_DB.error("Error watching folder " + dbFolderPath, e);
         }
     }
 
@@ -120,7 +118,7 @@ public class UpdateDb {
         String collectionFileName = collectionBson.getName();
         final int lastPos = collectionFileName.lastIndexOf(".bson");
         if (lastPos <= 0) {
-            LOGGER_UPDATE_DB.error("File {} is not formatable to collection name. Need .bson file", collectionFileName);
+            LOGGER_UPDATE_DB.error("File {} is not format-able to collection name. Need .bson file", collectionFileName);
             return null;
         }
 
