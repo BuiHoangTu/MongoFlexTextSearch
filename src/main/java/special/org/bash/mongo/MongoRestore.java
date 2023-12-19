@@ -22,6 +22,7 @@ public class MongoRestore {
     @Autowired
     public MongoRestore(ResourceMongo resourceMongo) throws IOException {
         this.resourceMongo = resourceMongo;
+        // TODO: select based on OS
         var resource = new ClassPathResource("/lib/mongodb-database-tools-windows-x86_64-100.9.4/bin/mongorestore.exe");
         try {
             this.exePath = resource.getFile().getAbsolutePath();

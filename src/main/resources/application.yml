@@ -16,20 +16,31 @@ spring:
 special:
   org:
     watching:
-      database_path: $DATABASE_PATH
+      database-path: ${DATABASE_PATH}
 
       databases:
-        database_name1:
+        catalog_manager:
           -
-            collection_name: name
+            collection_name: airport
+            text_fields: name
+          -
+            collection_name: protectTarget
+            text_fields: name
+          -
+            collection_name: responsibility_area
             text_fields:
-              - amo_type
-              - amo_source
+              - name
+              - unitId
           -
-            collection_name: name
+            collection_name: vsis_fire_power
             text_fields:
-              - other_text
-        north:
+              - unitId
+              - weaponModel.description
+
+        command_report:
           -
-            collection_name: name
-            text_fields: air_craft
+            collection_name: command
+            text_fields:
+          -
+            collection_name: forms
+            text_fields:
