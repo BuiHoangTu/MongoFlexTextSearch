@@ -3,6 +3,7 @@ package special.org.configs;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.context.annotation.Configuration;
@@ -19,13 +20,13 @@ public class ResourceWatching {
 
     // ------------db_name----collection_name--text
     private final Map<String, List<ResourceWatchingCollection>> databases;
-    private final String databasesPath;
+    @Value("${special.org.watching.database-path}")
+    private String databasesPath;
 
     @ConstructorBinding
-    public ResourceWatching(Map<String, List<ResourceWatchingCollection>> databases, Optional<String> databasesPath) {
+    public ResourceWatching(Map<String, List<ResourceWatchingCollection>> databases) {
         this.databases = databases;
-        this.databasesPath = databasesPath.orElse(null);
-
+        LOGGER_RESOURCE_WATCHER.info("Application is watching {}", databases);
     }
 
 
