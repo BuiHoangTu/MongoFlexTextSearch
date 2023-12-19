@@ -44,3 +44,9 @@ special:
           -
             collection_name: forms
             text_fields:
+
+        daily_report:
+          - collection_name: daily_report
+            text_fields:
+          - collection_name: history_logs
+            text_fields:

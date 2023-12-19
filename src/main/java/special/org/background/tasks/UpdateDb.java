@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ public class UpdateDb {
     private final ResourceWatching resourceWatching;
     private final MongoRestore restore;
     private final TaskScheduler scheduler;
+    private final Map<WatchKey, File> mapKey2Dir = new HashMap<>();
 
 
     @Autowired
@@ -75,8 +77,8 @@ public class UpdateDb {
             }
 
             // Register the folder to be watched for create, modify, and delete events
-            rootPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY); //, StandardWatchEventKinds.ENTRY_DELETE);
-
+            this.registerAllDatabases(rootPath, databasesName); //, StandardWatchEventKinds.ENTRY_DELETE);
+            LOGGER_UPDATE_DB.info("Watch system ready");
             while (true) {
                 // this will block until there are changes so while true is feasible
                 WatchKey watchKey = watchService.take();
@@ -91,8 +93,9 @@ public class UpdateDb {
                     }
 
                     Path changedCollectionPath = (Path) event.context();
-                    File collectionFile = rootPath.resolve(changedCollectionPath).toFile();
-                    var changedDatabaseName = collectionFile.getParent();
+                    var changedDir = mapKey2Dir.get(watchKey);
+                    File collectionFile = changedDir.toPath().resolve(changedCollectionPath).toFile();
+                    var changedDatabaseName = changedDir.getName();
 
                     if (!databasesName.contains(changedDatabaseName)) {
                         LOGGER_UPDATE_DB.info("File {} has been {}, but it's parent `{}` is not in databases list", collectionFile, kind, changedDatabaseName);
@@ -134,7 +137,7 @@ public class UpdateDb {
     private String extractCollectionNameFromBsonFile(File collectionBson) {
         String collectionFileName = collectionBson.getName();
         int lastPos = collectionFileName.lastIndexOf(".bson");
-        if (lastPos <= 0) lastPos = collectionFileName.lastIndexOf(".metadata.json");
+//        if (lastPos <= 0) lastPos = collectionFileName.lastIndexOf(".metadata.json");
         if (lastPos <= 0) {
             LOGGER_UPDATE_DB.error("File {} is not format-able to collection name. Need .bson or .metadata.json file", collectionFileName);
             return null;
@@ -142,4 +145,18 @@ public class UpdateDb {
 
         return collectionFileName.substring(0, lastPos);
     }
+
+    private void registerAllDatabases(Path root, Collection<String> databases) throws IOException {
+        var subEntries = root.toFile().listFiles(subFile -> {
+            if (!subFile.isDirectory()) return false;
+            return databases.contains(subFile.getName());
+        });
+        if (subEntries == null) return;
+        for (var dbFolder : subEntries) {
+            var key = dbFolder.toPath().register(UpdateDb.watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
+            this.mapKey2Dir.put(key, dbFolder);
+            LOGGER_UPDATE_DB.info("Registered {}", dbFolder);
+        }
+    }
+
 }
