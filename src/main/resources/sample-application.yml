@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: MongoFlexFullTextSearch
+  data:
+    mongodb:
+      host: ${MONGODB_HOST}
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      port: ${MONGODB_PORT}
+      database: text_search
+      authentication-database: ${MONGODB_AUTH_DB}
+
+special:
+  org:
+    watching:
+      database-path: ${DATABASE_PATH}
+
+      databases:
+        database_name1:
+          -
+            collection_name: name
+            text_fields:
+              - amo_type
+              - amo_source
+          -
+            collection_name: name
+            text_fields:
+              - other_text
+        north:
+          -
+            collection_name: name
+            text_fields: air_craft
