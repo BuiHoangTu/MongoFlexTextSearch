@@ -5,13 +5,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import special.org.bash.ExeNotFoundException;
 import special.org.configs.ResourceMongo;
 import special.org.configs.ResourceWatchingCollection;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import static java.lang.System.getenv;
 
 @Service
 public class MongoRestore {
@@ -20,17 +29,34 @@ public class MongoRestore {
     private final ResourceMongo resourceMongo;
 
     @Autowired
-    public MongoRestore(ResourceMongo resourceMongo) throws IOException {
+    public MongoRestore(ResourceMongo resourceMongo) throws ExeNotFoundException {
         this.resourceMongo = resourceMongo;
-        // TODO: select based on OS
+
+        // find exe from path
+        String exeName = "mongorestore";
+        Optional<Path> execPath = Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
+                .map(Paths::get)
+                .filter(path -> Files.exists(path.resolve(exeName))).findFirst();
+
+        // if exe is in path
+        if (execPath.isPresent()) {
+            this.exePath = exeName;
+            return;
+        }
+        LOGGER_MONGO_RESTORE.error("Exe not found: {} in PATH", exeName);
+
+        // try windows exe
+        // TODO: select based on OSes
         var resource = new ClassPathResource("/lib/mongodb-database-tools-windows-x86_64-100.9.4/bin/mongorestore.exe");
         try {
             this.exePath = resource.getFile().getAbsolutePath();
-
+            return;
         } catch (IOException e) {
             LOGGER_MONGO_RESTORE.error("Exe not found: {}", resource.getPath());
-            throw e;
         }
+
+        LOGGER_MONGO_RESTORE.error("Can't find any exe for mongorestore");
+        throw new ExeNotFoundException(exeName);
     }
 
     public void restoreDatabase(String dbName, String dbFolderStr, List<ResourceWatchingCollection> collectionsEntry) {
@@ -40,7 +66,7 @@ public class MongoRestore {
 
             // add params
             var command = processBuilder.command();
-            this.addAuthParams(command);
+            this.addDefaultParams(command);
             // add restored db
             command.add("--db");
             command.add(dbName);
@@ -72,7 +98,7 @@ public class MongoRestore {
 
             // add params
             var command = processBuilder.command();
-            this.addAuthParams(command);
+            this.addDefaultParams(command);
             // add restored db
             command.add("--db");
             command.add(dbName);
@@ -101,7 +127,7 @@ public class MongoRestore {
     }
 
 
-    private void addAuthParams(List<String> command) {
+    private void addDefaultParams(List<String> command) {
         // host
         command.add("--host");
         command.add(resourceMongo.getHost());
@@ -114,5 +140,7 @@ public class MongoRestore {
         // auth database
         command.add("--authenticationDatabase");
         command.add(resourceMongo.getAuthenticationDatabase());
+        // less messages
+        command.add("--quiet");
     }
 }
