@@ -1,4 +1,4 @@
-package special.org.controllers;
+package special.org.endpoints.search.fulltext;
 
 import org.bson.json.JsonObject;
 import org.slf4j.Logger;

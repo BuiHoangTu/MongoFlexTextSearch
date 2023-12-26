@@ -1,4 +1,4 @@
-package special.org.controllers;
+package special.org.endpoints.search.fulltext;
 
 import java.awt.desktop.QuitResponse;
 import java.util.Collections;
