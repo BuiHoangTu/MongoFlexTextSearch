@@ -51,6 +51,7 @@ public class FileWatcher {
 ```
 
 - [ ] Consider multiple changes 
+Implement ActionSet
 ```java
 class LastChange {
     Map<Path, Long> lastModifiedMap = new HashMap<>();
