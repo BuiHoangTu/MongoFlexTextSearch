@@ -8,7 +8,7 @@ import special.org.configs.ResourceWatching;
 
 @SpringBootApplication
 @EnableScheduling
-@EnableConfigurationProperties(value = {ResourceWatching.class})
+@EnableConfigurationProperties
 public class MongoFlexFullTextSearchApplication {
 
     public static void main(String[] args) {

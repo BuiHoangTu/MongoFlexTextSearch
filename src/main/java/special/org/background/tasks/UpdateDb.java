@@ -4,20 +4,20 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import special.org.bash.mongo.MongoRestore;
+import special.org.configs.MongodbTemplates;
 import special.org.configs.ResourceWatching;
 import special.org.configs.ResourceWatchingCollection;
+import special.org.mongodb.templates.CreateTextIndex;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class UpdateDb {
@@ -37,19 +37,23 @@ public class UpdateDb {
     private final MongoRestore restore;
     private final TaskScheduler scheduler;
     private final Map<WatchKey, File> mapKey2Dir = new HashMap<>();
+    private final MongodbTemplates templates;
+    private final CreateTextIndex textIndex;
 
 
     @Autowired
-    public UpdateDb(ResourceWatching resourceWatching, MongoRestore restore, TaskScheduler scheduler) {
+    public UpdateDb(ResourceWatching resourceWatching, MongoRestore restore, TaskScheduler scheduler, MongodbTemplates templates, CreateTextIndex textIndex) {
         this.resourceWatching = resourceWatching;
         this.restore = restore;
         this.scheduler = scheduler;
+        this.templates = templates;
+        this.textIndex = textIndex;
     }
 
     // run this on start-up
     @PostConstruct
     public void updateDB() {
-        var rootPath = resourceWatching.getDatabasesPath();
+        String rootPath = resourceWatching.getDatabasesPath();
 
         Map<String, List<ResourceWatchingCollection>> databases = resourceWatching.getDatabases();
 
@@ -68,12 +72,19 @@ public class UpdateDb {
         final Collection<String> databasesName = databases.keySet();
 
         try {
-            var rootPath = Path.of(rootFolderPathStr);
+            Path rootPath = Path.of(rootFolderPathStr);
 
             // try restore all on start
             for (var databaseName : databasesName) {
+                // restore data
                 LOGGER_UPDATE_DB.info("Startup task: Sync {}.", databaseName);
                 restore.restoreDatabase(databaseName, rootFolderPathStr + File.separator + databaseName, databases.get(databaseName));
+                // ensure textIndex for each database, each collection
+                for (Map.Entry<String, MongoTemplate> templateEntries : templates.entrySet()) {
+                    for (ResourceWatchingCollection collection : resourceWatching.getDatabases().get(templateEntries.getKey())) {
+                        textIndex.createTextIndex(templateEntries.getValue(), collection.getCollectionName(), collection.getTextFields());
+                    }
+                }
             }
 
             // Register the folder to be watched for create, modify, and delete events
@@ -93,18 +104,18 @@ public class UpdateDb {
                     }
 
                     Path changedCollectionPath = (Path) event.context();
-                    var changedDir = mapKey2Dir.get(watchKey);
+                    File changedDir = mapKey2Dir.get(watchKey);
                     File collectionFile = changedDir.toPath().resolve(changedCollectionPath).toFile();
-                    var changedDatabaseName = changedDir.getName();
+                    String changedDatabaseName = changedDir.getName();
 
                     if (!databasesName.contains(changedDatabaseName)) {
                         LOGGER_UPDATE_DB.info("File {} has been {}, but it's parent `{}` is not in databases list", collectionFile, kind, changedDatabaseName);
                         continue;
                     }
 
-                    var collectionsName = databases.get(changedDatabaseName).stream().map(ResourceWatchingCollection::getCollectionName).toList();
+                    List<String> collectionsName = databases.get(changedDatabaseName).stream().map(ResourceWatchingCollection::getCollectionName).toList();
 
-                    var collectionName = extractCollectionNameFromBsonFile(collectionFile);
+                    String collectionName = extractCollectionNameFromBsonFile(collectionFile);
                     if (collectionName == null) continue;
 
                     // not the collection we are watching for
@@ -115,7 +126,16 @@ public class UpdateDb {
 
                     LOGGER_UPDATE_DB.info("File {} has been {}. Updating", collectionFile, kind);
                     if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-
+                        textIndex.createTextIndex(
+                                templates.get(changedDatabaseName),
+                                collectionName,
+                                resourceWatching
+                                        .getDatabases()
+                                        .get(changedDatabaseName).stream()
+                                        .filter(collection -> Objects.equals(collection.getCollectionName(), collectionName))
+                                        .findFirst().map(ResourceWatchingCollection::getTextFields)
+                                        .orElse(Collections.emptyList())
+                        );
                     } else {
                         // modify
                     }
@@ -137,9 +157,8 @@ public class UpdateDb {
     private String extractCollectionNameFromBsonFile(File collectionBson) {
         String collectionFileName = collectionBson.getName();
         int lastPos = collectionFileName.lastIndexOf(".bson");
-//        if (lastPos <= 0) lastPos = collectionFileName.lastIndexOf(".metadata.json");
         if (lastPos <= 0) {
-            LOGGER_UPDATE_DB.error("File {} is not format-able to collection name. Need .bson or .metadata.json file", collectionFileName);
+            LOGGER_UPDATE_DB.info("File {} is not format-able to collection name. Need .bson file", collectionFileName);
             return null;
         }
 
@@ -147,13 +166,13 @@ public class UpdateDb {
     }
 
     private void registerAllDatabases(Path root, Collection<String> databases) throws IOException {
-        var subEntries = root.toFile().listFiles(subFile -> {
+        File[] subEntries = root.toFile().listFiles(subFile -> {
             if (!subFile.isDirectory()) return false;
             return databases.contains(subFile.getName());
         });
         if (subEntries == null) return;
         for (var dbFolder : subEntries) {
-            var key = dbFolder.toPath().register(UpdateDb.watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
+            WatchKey key = dbFolder.toPath().register(UpdateDb.watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
             this.mapKey2Dir.put(key, dbFolder);
             LOGGER_UPDATE_DB.info("Registered {}", dbFolder);
         }

@@ -1,8 +1,8 @@
 ## watcher
-- On start-up try to restore all (also try creating index)
-- Only looking at specified bson file 
-- Only call collection update if file change
-- Also call create index if file create 
+- [x] On start-up try to restore all (also try creating index)
+- [x] Only looking at specified bson file 
+- [x] Only call collection update if file change
+- [x] Also call create index if file create 
 ```java
 public class FileWatcher {
 
@@ -50,8 +50,41 @@ public class FileWatcher {
 }
 ```
 
+- [ ] Consider multiple changes 
+```java
+class LastChange {
+    Map<Path, Long> lastModifiedMap = new HashMap<>();
+
+    void function() {
+        // Inside the loop
+        for (WatchEvent<?> event : key.pollEvents()) {
+            Path changedPath = (Path) event.context();
+            Path fullPath = mainFolderPath.resolve(changedPath);
+
+            if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                long currentTime = System.currentTimeMillis();
+                long lastModified = lastModifiedMap.getOrDefault(fullPath, 0L);
+
+                if (currentTime - lastModified > 1000) {
+                    // Consider this as a separate change
+                    lastModifiedMap.put(fullPath, currentTime);
+                    System.out.println("File changed: " + fullPath);
+                    // Perform your action here
+                    performAction(fullPath);
+                }
+            }
+        }
+
+        // Reset the key to receive further events
+        key.reset();
+
+    }
+
+}
+```
+
 ## mongorestore
-1. restore only specified collection ~~(add suffix : _text_index_col)~~
+1. ~~restore~~ reload only changed collection 
 ```shell
 mongorestore --db db_1 dump_folder/db_1/collection_1.bson
 mongorestore --db db_1 dump_folder/db_1/collection_2.bson
