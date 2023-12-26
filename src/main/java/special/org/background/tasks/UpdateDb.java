@@ -75,15 +75,15 @@ public class UpdateDb {
             Path rootPath = Path.of(rootFolderPathStr);
 
             // try restore all on start
-            for (var databaseName : databasesName) {
+            for (Map.Entry<String, MongoTemplate> templateEntries : templates.entrySet()) {
+                String databaseName = templateEntries.getKey();
                 // restore data
                 LOGGER_UPDATE_DB.info("Startup task: Sync {}.", databaseName);
                 restore.restoreDatabase(databaseName, rootFolderPathStr + File.separator + databaseName, databases.get(databaseName));
+
                 // ensure textIndex for each database, each collection
-                for (Map.Entry<String, MongoTemplate> templateEntries : templates.entrySet()) {
-                    for (ResourceWatchingCollection collection : resourceWatching.getDatabases().get(templateEntries.getKey())) {
-                        textIndex.createTextIndex(templateEntries.getValue(), collection.getCollectionName(), collection.getTextFields());
-                    }
+                for (ResourceWatchingCollection collection : resourceWatching.getDatabases().get(templateEntries.getKey())) {
+                    textIndex.createTextIndex(templateEntries.getValue(), collection.getCollectionName(), collection.getTextFields());
                 }
             }
 
