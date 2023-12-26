@@ -1,3 +1,14 @@
+# search
+foreach db - foreach collection
+- [ ] reduce search phrase by db data
+- [x] db.textSearch()
+- [ ] sort search by score 
+        
+
+
+
+
+# fetch data
 ## watcher
 - [x] On start-up try to restore all (also try creating index)
 - [x] Only looking at specified bson file 
@@ -85,12 +96,14 @@ class LastChange {
 ```
 
 ## mongorestore
-1. ~~restore~~ reload only changed collection 
+- [x] ~~restore~~ reload only changed collection 
 ```shell
 mongorestore --db db_1 dump_folder/db_1/collection_1.bson
 mongorestore --db db_1 dump_folder/db_1/collection_2.bson
 ```
-2. create text index if not existed 
+
+## Indexes
+- [x] create text index if not existed 
 ```java
 public class Sample {
     @Autowired
@@ -112,3 +125,6 @@ public class Sample {
     }
 }
 ```
+
+- [ ] check empty textIndex
+- [ ] fix loop in updatedb if error

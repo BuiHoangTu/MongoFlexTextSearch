@@ -40,13 +40,13 @@ special:
         command_report:
           -
             collection_name: command
-            text_fields:
+            text_fields: name
           -
             collection_name: forms
-            text_fields:
+            text_fields: name
 
         daily_report:
           - collection_name: daily_report
-            text_fields:
+            text_fields: name
           - collection_name: history_logs
-            text_fields:
+            text_fields: name

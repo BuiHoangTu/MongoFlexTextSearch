@@ -1,19 +1,10 @@
 package special.org.endpoints.search.fulltext;
 
-import java.awt.desktop.QuitResponse;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.Document;
-import org.bson.EmptyBSONCallback;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.TextCriteria;
@@ -21,20 +12,15 @@ import org.springframework.data.mongodb.core.query.TextQuery;
 import org.springframework.data.mongodb.core.schema.JsonSchemaObject;
 import org.springframework.stereotype.Repository;
 
-import com.mongodb.client.MongoCollection;
-import org.w3c.dom.Text;
+import java.util.List;
 
 @Repository
 public class TextSearchMongoTemplate {
-    private final MongoTemplate template;
-    private static final String collectionName = "";
-
     @Autowired
-    public TextSearchMongoTemplate(MongoTemplate template) {
-        this.template = template;
+    public TextSearchMongoTemplate() {
     }
 
-    public List<Document> search(String collectionName, String searchPhrase, int limit) {
+    public List<Document> search(MongoTemplate template, String collectionName, String searchPhrase, int limit) {
         Query textSearch = TextQuery
                 .queryText(new TextCriteria().matching(searchPhrase))
                 .sortByScore()
@@ -43,7 +29,7 @@ public class TextSearchMongoTemplate {
         return template.find(textSearch, Document.class, collectionName);
     }
 
-    public BsonArray getWordsCount() {
+    public BsonArray getWordsCount(MongoTemplate template, String collectionName) {
         Query query = new Query();
 
         query.addCriteria(Criteria.where("wordCounts")
@@ -63,9 +49,5 @@ public class TextSearchMongoTemplate {
 
         if (res != null) return res.getArray("wordCounts");
         else return new BsonArray();
-    }
-
-    public void insert() {
-
     }
 }
