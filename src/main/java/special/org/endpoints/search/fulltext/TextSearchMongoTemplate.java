@@ -23,7 +23,7 @@ public class TextSearchMongoTemplate {
     public List<Document> search(MongoTemplate template, String collectionName, String searchPhrase, int limit) {
         Query textSearch = TextQuery
                 .queryText(new TextCriteria().matching(searchPhrase))
-                .sortByScore()
+                .sortByScore() // sorted by decreasing order
                 .limit(limit);
 
         return template.find(textSearch, Document.class, collectionName);

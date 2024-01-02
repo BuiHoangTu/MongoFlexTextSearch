@@ -20,8 +20,6 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static java.lang.System.getenv;
-
 @Service
 public class MongoRestore {
     private static final Logger LOGGER_MONGO_RESTORE = LoggerFactory.getLogger(MongoRestore.class);
@@ -43,7 +41,6 @@ public class MongoRestore {
             this.exePath = exeName;
             return;
         }
-        LOGGER_MONGO_RESTORE.error("Exe not found: {} in PATH", exeName);
 
         // try windows exe
         // TODO: select based on OSes
@@ -52,7 +49,7 @@ public class MongoRestore {
             this.exePath = resource.getFile().getAbsolutePath();
             return;
         } catch (IOException e) {
-            LOGGER_MONGO_RESTORE.error("Exe not found: {}", resource.getPath());
+            LOGGER_MONGO_RESTORE.error("Exe not found in PATH and in `{}`", resource.getPath());
         }
 
         LOGGER_MONGO_RESTORE.error("Can't find any exe for mongorestore");
@@ -82,7 +79,7 @@ public class MongoRestore {
             Process process = processBuilder.start();
 
             // log output
-            try (InputStream inputStream = process.getInputStream();) {
+            try (InputStream inputStream = process.getInputStream()) {
                 LOGGER_MONGO_RESTORE.info(new String(inputStream.readAllBytes()));
             }
 
@@ -117,7 +114,7 @@ public class MongoRestore {
             Process process = processBuilder.start();
 
             // log output
-            try (InputStream inputStream = process.getInputStream();) {
+            try (InputStream inputStream = process.getInputStream()) {
                 LOGGER_MONGO_RESTORE.info(new String(inputStream.readAllBytes()));
             }
 

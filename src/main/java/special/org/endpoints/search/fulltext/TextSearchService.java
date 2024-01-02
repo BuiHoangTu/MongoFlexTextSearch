@@ -2,7 +2,6 @@ package special.org.endpoints.search.fulltext;
 
 import com.mongodb.MongoQueryException;
 import org.bson.Document;
-import org.bson.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +11,8 @@ import special.org.configs.MongodbTemplates;
 import special.org.configs.ResourceWatching;
 import special.org.configs.ResourceWatchingCollection;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +39,6 @@ public class TextSearchService {
 //            var word = wordJson.asDocument().getString("word");
 //            var count = wordJson.asDocument().getString("count");
 //        }
-        final Map<String, List<ResourceWatchingCollection>> databases = resourceWatching.getDatabases();
 
         List<Document> result = new ArrayList<>();
 
@@ -53,12 +50,14 @@ public class TextSearchService {
                 try {
                     result.addAll(database.search(templateEntries.getValue(), collection.getCollectionName(), searchPhrase, limit));
                 } catch (MongoQueryException e) {
-                    LOGGER_TEXT_SEARCH_SERVICE.error("Can't search in collection `" + collection.getCollectionName() + "` of db `" + databaseName + "`", e);
+                    LOGGER_TEXT_SEARCH_SERVICE.error("Can't search in collection `" + collection.getCollectionName() + "` of db `" + databaseName + "`: ", e);
                 }
             }
         }
 
-        return result;
+        result.sort(Comparator.comparingDouble(doc -> doc.getDouble("score")));
+
+        return result.stream().limit(limit).toList();
     }
 
 }

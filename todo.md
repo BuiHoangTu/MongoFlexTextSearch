@@ -2,7 +2,7 @@
 foreach db - foreach collection
 - [ ] reduce search phrase by db data
 - [x] db.textSearch()
-- [ ] sort search by score 
+- [x] sort search by score 
         
 
 
@@ -126,5 +126,4 @@ public class Sample {
 }
 ```
 
-- [ ] check empty textIndex
 - [ ] fix loop in updatedb if error
