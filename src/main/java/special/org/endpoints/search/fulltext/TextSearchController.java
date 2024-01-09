@@ -25,10 +25,17 @@ public class TextSearchController {
         this.service = service;
     }
 
-    /** */
-    @GetMapping(path = "precise")  
-    public ResponseEntity<List<Document>> searchFullTextPrecise(@RequestParam(value = "searchPhrase") String searchPhrase) {
-        List<Document> res = service.searchTextWithAllWordCount(searchPhrase, 3);
+    /**
+     * Get locations of best search
+     * @param searchPhrase What you want to search
+     * @return max amount of values
+     */
+    @GetMapping(path = "location")
+    public ResponseEntity<List<TextMarker>> searchFullTextPrecise(
+            @RequestParam(value = "searchPhrase") String searchPhrase,
+            @RequestParam(value = "limit", defaultValue = "10") int limit
+    ) {
+        List<TextMarker> res = service.searchTextWithAllWordCount(searchPhrase, limit);
         OPEN_CONTROLLER_LOG.info("combine-reduced-search got keyText:" + searchPhrase);
         OPEN_CONTROLLER_LOG.info(res.toString());
         return ResponseEntity.ok(res);

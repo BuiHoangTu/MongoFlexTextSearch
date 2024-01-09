@@ -4,32 +4,47 @@ server:
 spring:
   application:
     name: MongoFlexFullTextSearch
+  #  This is our database which saves text search
   data:
     mongodb:
-      host: ${MONGODB_HOST}
-      username: ${MONGODB_USERNAME}
-      password: ${MONGODB_PASSWORD}
-      port: ${MONGODB_PORT}
-      database: text_search
-      authentication-database: ${MONGODB_AUTH_DB}
+      host: our_host
+      username: our_uname
+      password: our_passwd
+      port: 123123 # our_port
+      database: our_db_for_saving_text_search_index
+      authentication-database: our_auth_db
 
+# This is the database that need watching (using their authentication - at least read permission)
 special:
   org:
     watching:
-      database-path: ${DATABASE_PATH}
-
       databases:
-        database_name1:
-          -
-            collection_name: name
-            text_fields:
-              - amo_type
-              - amo_source
-          -
-            collection_name: name
-            text_fields:
-              - other_text
-        north:
-          -
-            collection_name: name
-            text_fields: air_craft
+        - database: db_name
+          host: host_name
+          username: uname
+          password: passwd
+          port: 123456
+          authentication-database: auth_db_name
+          collections:
+            - name: collection1
+              text-fields:
+                - field1
+                - field2
+            - name: collection2
+              text-fields:
+                - field3.subfield
+                - field4
+
+        - database: db_name
+          host: host_name2
+          username: uname
+          password: passwd
+          port: 123456
+          authentication-database: auth_db_name
+          collections:
+            - name: collection1
+              text-fields:
+                - field1
+                - field2
+            - name: collection2
+              text-fields: field0

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
+@SuppressWarnings("unused")
 public class TextSearchMongoTemplate {
     @Autowired
     public TextSearchMongoTemplate() {

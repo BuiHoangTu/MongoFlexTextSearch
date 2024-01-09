@@ -23,13 +23,4 @@ public class ResourceMongo {
     private String database;
     @Value("${spring.data.mongodb.authentication-database}")
     private String authenticationDatabase;
-
-//    @ConstructorBinding
-//    public ResourceMongo(Optional<String> host, Optional<String> username, Optional<String> password, Optional<String> port, Optional<String> database) {
-//        this.host = host.orElse(null);
-//        this.username = username.orElse(null);
-//        this.password = password.orElse(null);
-//        this.port = port.orElse(null);
-//        this.database = database.orElse(null);
-//    }
 }

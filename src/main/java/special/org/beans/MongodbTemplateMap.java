@@ -1,27 +1,39 @@
-package special.org.configs;
+package special.org.beans;
 
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
+import org.springframework.stereotype.Component;
+import special.org.configs.ResourceWatching;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-@Configuration
-public class MongodbTemplates implements Map<String, MongoTemplate> {
+/**
+ * Pre-build templates for each database.
+ * Map from db name -> its MongoTemplate
+ */
+@Component
+public class MongodbTemplateMap implements Map<String, MongoTemplate> {
     private final HashMap<String, MongoTemplate> map = new HashMap<>();
 
     @Autowired
-    public MongodbTemplates(ResourceWatching databases, MongoClient client) {
-        for (var dbName : databases.getDatabases().keySet()) {
-            var factory = new SimpleMongoClientDatabaseFactory(client, dbName);
-            var template = new MongoTemplate(factory);
+    public MongodbTemplateMap(ResourceWatching resourceWatching) {
+        for (var databaseConfig : resourceWatching.getDatabases()) {
 
-            map.put(dbName, template);
+            String connectionString = "mongodb://" + databaseConfig.getUsername() +
+                    ":" + databaseConfig.getPassword() +
+                    "@" + databaseConfig.getHost() +
+                    ":" + databaseConfig.getPort() +
+                    "/" + databaseConfig.getDatabase() +
+                    "?authSource=" + databaseConfig.getAuthenticationDatabase();
+            MongoClient client = MongoClients.create(connectionString);
+            MongoTemplate template = new MongoTemplate(client, databaseConfig.getDatabase());
+
+            map.put(databaseConfig.getDatabase(), template);
         }
     }
 
