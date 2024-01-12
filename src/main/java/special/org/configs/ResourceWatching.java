@@ -24,6 +24,6 @@ public class ResourceWatching {
     @ConstructorBinding
     public ResourceWatching(List<WatchingDatabaseConfig> databases) {
         this.databases = databases;
-        LOGGER_RESOURCE_WATCHER.info("Application's configuration is watching databases {}", databases.stream().map(WatchingDatabaseConfig::getDatabase));
+        LOGGER_RESOURCE_WATCHER.info("Application's configuration is watching databases {}", databases.stream().map(WatchingDatabaseConfig::getDatabase).toList());
     }
 }

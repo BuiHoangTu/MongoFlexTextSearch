@@ -37,14 +37,16 @@ public class UpdateDb {
     private final MongodbTemplateMap templates;
     private final MongodbDetailMap details;
     private final TextSearchRepo repo;
+    private final SyncDb syncDb;
 
 
     @Autowired
-    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo) {
+    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, SyncDb syncDb) {
         this.scheduler = scheduler;
         this.templates = templates;
         this.details = details;
         this.repo = repo;
+        this.syncDb = syncDb;
     }
 
     // run this on start-up
@@ -63,6 +65,8 @@ public class UpdateDb {
                 );
             }
         }
+        LOGGER_UPDATE_DB.info("Sync existing data");
+        syncDb.syncDb();
     }
 
     private void watchCollection(MongoTemplate mongoTemplate, WatchingCollectionConfig collectionConfig) {
