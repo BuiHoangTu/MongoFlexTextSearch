@@ -6,6 +6,6 @@ import java.util.List;
 
 @Data
 public class WatchingCollectionConfig {
-    private String collectionName;
+    private String name;
     private List<String> textFields;
 }

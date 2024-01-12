@@ -48,7 +48,7 @@ public class SyncDb {
             query.fields().include(fieldName);
         });
 
-        List<Document> res = template.find(query, Document.class, collectionConfig.getCollectionName());
+        List<Document> res = template.find(query, Document.class, collectionConfig.getName());
 
         for (var document : res) {
             String refId = document.getObjectId("_id").toString();
@@ -61,7 +61,7 @@ public class SyncDb {
                 }
             }
 
-            var existing = repo.findByDbNameAndCollectionNameAndRefId(template.getDb().getName(), collectionConfig.getCollectionName(), refId);
+            var existing = repo.findByDbNameAndCollectionNameAndRefId(template.getDb().getName(), collectionConfig.getName(), refId);
             if (existing.isPresent()) {
                 var updating = existing.get();
                 updating.setTextIndexes(textIndexMap);
@@ -69,7 +69,7 @@ public class SyncDb {
             } else {
                 TextMarker textMarker = new TextMarker();
                 textMarker.setDbName(template.getDb().getName());
-                textMarker.setCollectionName(collectionConfig.getCollectionName());
+                textMarker.setCollectionName(collectionConfig.getName());
                 textMarker.setRefId(refId);
                 textMarker.setTextIndexes(textIndexMap);
 

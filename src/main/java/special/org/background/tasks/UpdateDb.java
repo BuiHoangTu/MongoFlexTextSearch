@@ -58,7 +58,7 @@ public class UpdateDb {
             for (var collection : collections) {
                 this.scheduler.scheduleAtFixedRate(
                         () -> {
-                            LOGGER_UPDATE_DB.info("Registering |{}|-|{}| for watching", dbName, collection.getCollectionName());
+                            LOGGER_UPDATE_DB.info("Registering |{}|-|{}| for watching", dbName, collection.getName());
                             this.watchCollection(template, collection);
                         },
                         Duration.ofSeconds(30)
@@ -71,7 +71,7 @@ public class UpdateDb {
 
     private void watchCollection(MongoTemplate mongoTemplate, WatchingCollectionConfig collectionConfig) {
         // Select the collection to query
-        MongoCollection<Document> collection = mongoTemplate.getCollection(collectionConfig.getCollectionName());
+        MongoCollection<Document> collection = mongoTemplate.getCollection(collectionConfig.getName());
 
         // Create pipeline for operationType filter
         List<Bson> pipeline = new ArrayList<>();
@@ -103,16 +103,16 @@ public class UpdateDb {
             if (document == null) continue;
             switch (changeEvent.getOperationType()) {
                 case INSERT -> {
-                    LOGGER_UPDATE_DB.info("{} has new collection", collectionConfig.getCollectionName());
+                    LOGGER_UPDATE_DB.info("{} has new collection", collectionConfig.getName());
                     documentInserted(document, mongoTemplate.getDb().getName(), collectionConfig);
                 }
                 case UPDATE -> {
-                    LOGGER_UPDATE_DB.info("{} has modified collection", collectionConfig.getCollectionName());
+                    LOGGER_UPDATE_DB.info("{} has modified collection", collectionConfig.getName());
                     documentModified(document, mongoTemplate.getDb().getName(), collectionConfig);
                 }
                 case DELETE -> {
-                    LOGGER_UPDATE_DB.info("{} has removed collection", collectionConfig.getCollectionName());
-                    documentRemoved(document, mongoTemplate.getDb().getName(), collectionConfig.getCollectionName());
+                    LOGGER_UPDATE_DB.info("{} has removed collection", collectionConfig.getName());
+                    documentRemoved(document, mongoTemplate.getDb().getName(), collectionConfig.getName());
                 }
             }
         }
@@ -136,7 +136,7 @@ public class UpdateDb {
         // Create a new TextMarker instance
         TextMarker textMarker = new TextMarker();
         textMarker.setDbName(dbName);
-        textMarker.setCollectionName(collectionConfig.getCollectionName());
+        textMarker.setCollectionName(collectionConfig.getName());
         textMarker.setRefId(refId);
         textMarker.setTextIndexes(textIndexes);
 
@@ -160,13 +160,13 @@ public class UpdateDb {
 
         // Create a new TextMarker instance
         TextMarker textMarker;
-        var existing = repo.findByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getCollectionName(), refId);
+        var existing = repo.findByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getName(), refId);
         if (existing.isPresent()) {
             textMarker = existing.get();
         } else {
             textMarker = new TextMarker();
             textMarker.setDbName(dbName);
-            textMarker.setCollectionName(collectionConfig.getCollectionName());
+            textMarker.setCollectionName(collectionConfig.getName());
             textMarker.setRefId(refId);
         }
         textMarker.setTextIndexes(textIndexes);
