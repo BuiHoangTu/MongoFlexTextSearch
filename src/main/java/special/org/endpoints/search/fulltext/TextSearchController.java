@@ -26,9 +26,9 @@ public class TextSearchController {
     }
 
     /**
-     * Get locations of best search
+     * Get locations of best searches
      * @param searchPhrase What you want to search
-     * @return max amount of values
+     * @return max amount of result
      */
     @GetMapping(path = "location")
     public ResponseEntity<List<TextMarker>> searchFullTextPrecise(

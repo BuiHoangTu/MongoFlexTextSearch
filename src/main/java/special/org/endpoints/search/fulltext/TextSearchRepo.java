@@ -4,6 +4,7 @@ import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TextSearchRepo extends MongoRepository<TextMarker, String> {
 
@@ -25,4 +26,8 @@ public interface TextSearchRepo extends MongoRepository<TextMarker, String> {
             "{ $limit: ?1 }"
     })
     List<TextMarker> searchFullText(String text, long limit);
+
+    Optional<TextMarker> findByDbNameAndCollectionNameAndRefId(String dbName, String collectionName, String refId);
+
+    void deleteByDbNameAndCollectionNameAndRefId(String dbName, String collectionName, String refId);
 }

@@ -1,25 +1,70 @@
 package special.org.endpoints.search.fulltext;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.mongodb.core.index.Indexed;
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
-@Data
+@Getter
 @Document
 @NoArgsConstructor
-@AllArgsConstructor
+@CompoundIndexes({
+        // make sure the ref is unique
+        @CompoundIndex(
+                name = "unique_ref",
+                def = "{" +
+                        "'dbName' : 1," +
+                        "'collectionName' : 1," +
+                        "'refId' : 1" +
+                        "}",
+                unique = true
+        )
+})
 public class TextMarker {
+    @Id
+    @Setter
+    private String id;
     // where is this text
+    @Setter
     private String dbName;
+
+    @Setter
     private String collectionName;
+
     // main Id of text
+    @Setter
     private String refId;
-    @TextIndexed
-    private Map<String, String> textIndexes;
+
+    // store data here
+    private TextIndexMap textIndexes;
+    @TextIndexed // convert textIndexes to string array
+    private List<String> textIndexesAsList;
+
+
+    @SuppressWarnings("unused")
+    public TextMarker(String dbName, String collectionName, String refId, TextIndexMap textIndexes, Collection<String> textIndexesAsList) {
+        this.dbName = dbName;
+        this.collectionName = collectionName;
+        this.refId = refId;
+        this.setTextIndexes(textIndexes);
+    }
+
+    public void setTextIndexes(TextIndexMap textIndexes) {
+        this.textIndexes = textIndexes;
+        this.textIndexesAsList = textIndexes.values().stream().toList();
+    }
+
+    /**
+     * DO NOT USE. Use setTextIndexes
+     * @param textIndexesAsList N/A
+     */
+    @SuppressWarnings("unused")
+    public void setTextIndexesAsList(Collection<String> textIndexesAsList) {
+        // do nothing because real value is from textIndexes
+    }
 }

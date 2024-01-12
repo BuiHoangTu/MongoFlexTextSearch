@@ -19,16 +19,14 @@ import org.springframework.stereotype.Component;
 import special.org.beans.MongodbDetailMap;
 import special.org.beans.MongodbTemplateMap;
 import special.org.configs.subconfig.WatchingCollectionConfig;
+import special.org.endpoints.search.fulltext.TextIndexMap;
 import special.org.endpoints.search.fulltext.TextMarker;
+import special.org.endpoints.search.fulltext.TextSearchRepo;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class UpdateDb {
@@ -37,15 +35,15 @@ public class UpdateDb {
     private final TaskScheduler scheduler;
     private final MongodbTemplateMap templates;
     private final MongodbDetailMap details;
-
-    private final Map<WatchKey, File> mapKey2Dir = new HashMap<>();
+    private final TextSearchRepo repo;
 
 
     @Autowired
-    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details) {
+    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo) {
         this.scheduler = scheduler;
         this.templates = templates;
         this.details = details;
+        this.repo = repo;
     }
 
     // run this on start-up
@@ -57,7 +55,7 @@ public class UpdateDb {
             for (var collection : collections) {
                 this.scheduler.scheduleAtFixedRate(
                         () -> {
-                            this.watchCollection(template, collection.getCollectionName());
+                            this.watchCollection(template, collection);
                             LOGGER_UPDATE_DB.info("Registered |{}|-|{}| for watching", dbName, collection.getCollectionName());
                         },
                         Duration.ofSeconds(30)
@@ -94,148 +92,85 @@ public class UpdateDb {
         // Iterate over the Change Stream
         for (ChangeStreamDocument<Document> changeEvent : changeStream) {
             if (changeEvent == null || changeEvent.getOperationType() == null) continue;
+
             // Process the change event here
+            Document document = changeEvent.getFullDocument();
+            if (document == null) continue;
             switch (changeEvent.getOperationType()) {
-                case INSERT:
-                    Document document = changeEvent.getFullDocument();
-                    if (document == null) break;
-                    documentInserted(document, collectionConfig.getTextFields());
-                    break;
-                case UPDATE:
-                    System.out.println("MongoDB Change Stream detected an update");
-                    break;
-                case DELETE:
-                    System.out.println("MongoDB Change Stream detected a delete");
-                    break;
+                case INSERT -> {
+                    LOGGER_UPDATE_DB.info("{} has new collection", collectionConfig.getCollectionName());
+                    documentInserted(document, mongoTemplate.getDb().getName(), collectionConfig);
+                }
+                case UPDATE -> {
+                    LOGGER_UPDATE_DB.info("{} has modified collection", collectionConfig.getCollectionName());
+                    documentModified(document, mongoTemplate.getDb().getName(), collectionConfig);
+                }
+                case DELETE -> {
+                    LOGGER_UPDATE_DB.info("{} has removed collection", collectionConfig.getCollectionName());
+                    documentRemoved(document, mongoTemplate.getDb().getName(), collectionConfig.getCollectionName());
+                }
             }
         }
     }
 
-    private void documentInserted(@NonNull Document insertedDocument, List<String> textFields) {
+    private void documentInserted(@NonNull Document insertedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
         String refId = insertedDocument.getObjectId("_id").toString();
-        Map<String, String> textIndexes = new HashMap<>();
+        TextIndexMap textIndexes = new TextIndexMap();
 
-        // Assuming the watching fields are embedded within the inserted document
-        for (String fieldName : textFields) {
-            var value = insertedDocument.getString(fieldName);
+        for (String fieldName : collectionConfig.getTextFields()) {
+            String value;
+            try {
+                value = insertedDocument.getString(fieldName);
+            } catch (ClassCastException e) {
+                value = "";
+            }
+
             textIndexes.put(fieldName, value);
         }
 
         // Create a new TextMarker instance
         TextMarker textMarker = new TextMarker();
+        textMarker.setDbName(dbName);
+        textMarker.setCollectionName(collectionConfig.getCollectionName());
         textMarker.setRefId(refId);
         textMarker.setTextIndexes(textIndexes);
+
+        repo.insert(textMarker);
     }
 
+    private void documentModified(@NonNull Document modifiedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
+        String refId = modifiedDocument.getObjectId("_id").toString();
+        TextIndexMap textIndexes = new TextIndexMap();
 
-    private void watchDatabases(String rootFolderPathStr, Map<String, List<WatchingCollectionConfig>> databases) {
-        final Collection<String> databasesName = databases.keySet();
-
-        try {
-            Path rootPath = Path.of(rootFolderPathStr);
-
-            // try restore all on start
-            for (Map.Entry<String, MongoTemplate> templateEntries : templates.entrySet()) {
-                String databaseName = templateEntries.getKey();
-                // restore data
-                LOGGER_UPDATE_DB.info("Startup task: Sync {}.", databaseName);
-                restore.restoreDatabase(databaseName, rootFolderPathStr + File.separator + databaseName, databases.get(databaseName));
-
-                // ensure textIndex for each database, each collection
-                for (WatchingCollectionConfig collection : resourceWatching.getDatabases().get(templateEntries.getKey())) {
-                    textIndex.createTextIndex(templateEntries.getValue(), collection.getCollectionName(), collection.getTextFields());
-                }
+        for (String fieldName : collectionConfig.getTextFields()) {
+            String value;
+            try {
+                value = modifiedDocument.getString(fieldName);
+            } catch (ClassCastException e) {
+                value = "";
             }
 
-            // Register the folder to be watched for create, modify, and delete events
-            this.registerAllDatabases(rootPath, databasesName); //, StandardWatchEventKinds.ENTRY_DELETE);
-            LOGGER_UPDATE_DB.info("Watch system ready");
-            while (true) {
-                // this will block until there are changes so while true is feasible
-                WatchKey watchKey = watchService.take();
-
-                for (WatchEvent<?> event : watchKey.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
-
-                    // data lost somehow
-                    if (kind == StandardWatchEventKinds.OVERFLOW) {
-                        LOGGER_UPDATE_DB.info("File changes overflow");
-                        continue;
-                    }
-
-                    Path changedCollectionPath = (Path) event.context();
-                    File changedDir = mapKey2Dir.get(watchKey);
-                    File collectionFile = changedDir.toPath().resolve(changedCollectionPath).toFile();
-                    String changedDatabaseName = changedDir.getName();
-
-                    if (!databasesName.contains(changedDatabaseName)) {
-                        LOGGER_UPDATE_DB.info("File {} has been {}, but it's parent `{}` is not in databases list", collectionFile, kind, changedDatabaseName);
-                        continue;
-                    }
-
-                    List<String> collectionsName = databases.get(changedDatabaseName).stream().map(WatchingCollectionConfig::getCollectionName).toList();
-
-                    String collectionName = extractCollectionNameFromBsonFile(collectionFile);
-                    if (collectionName == null) continue;
-
-                    // not the collection we are watching for
-                    if (!collectionsName.contains(collectionName)) {
-                        LOGGER_UPDATE_DB.info("File {} has been {}, but it is not in collections list. Ignored", collectionFile, kind);
-                        continue;
-                    }
-
-                    LOGGER_UPDATE_DB.info("File {} has been {}. Updating", collectionFile, kind);
-                    if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-                        textIndex.createTextIndex(
-                                templates.get(changedDatabaseName),
-                                collectionName,
-                                resourceWatching
-                                        .getDatabases()
-                                        .get(changedDatabaseName).stream()
-                                        .filter(collection -> Objects.equals(collection.getCollectionName(), collectionName))
-                                        .findFirst().map(WatchingCollectionConfig::getTextFields)
-                                        .orElse(Collections.emptyList())
-                        );
-                    } else {
-                        // modify
-                    }
-
-                    restore.restoreCollection(changedDatabaseName, collectionName, collectionFile.getPath());
-                }
-
-                boolean reset = watchKey.reset();
-                if (!reset) {
-                    LOGGER_UPDATE_DB.error("Error resetting WatchKey");
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            LOGGER_UPDATE_DB.error("Error watching folder " + rootFolderPathStr, e);
-        }
-    }
-
-    private String extractCollectionNameFromBsonFile(File collectionBson) {
-        String collectionFileName = collectionBson.getName();
-        int lastPos = collectionFileName.lastIndexOf(".bson");
-        if (lastPos <= 0) {
-            LOGGER_UPDATE_DB.info("File {} is not format-able to collection name. Need .bson file", collectionFileName);
-            return null;
+            textIndexes.put(fieldName, value);
         }
 
-        return collectionFileName.substring(0, lastPos);
-    }
-
-    private void registerAllDatabases(Path root, Collection<String> databases) throws IOException {
-        File[] subEntries = root.toFile().listFiles(subFile -> {
-            if (!subFile.isDirectory()) return false;
-            return databases.contains(subFile.getName());
-        });
-        if (subEntries == null) return;
-        for (var dbFolder : subEntries) {
-            WatchKey key = dbFolder.toPath().register(UpdateDb.watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
-            this.mapKey2Dir.put(key, dbFolder);
-            LOGGER_UPDATE_DB.info("Registered {}", dbFolder);
+        // Create a new TextMarker instance
+        TextMarker textMarker;
+        var existing = repo.findByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getCollectionName(), refId);
+        if (existing.isPresent()) {
+            textMarker = existing.get();
+        } else {
+            textMarker = new TextMarker();
+            textMarker.setDbName(dbName);
+            textMarker.setCollectionName(collectionConfig.getCollectionName());
+            textMarker.setRefId(refId);
         }
+        textMarker.setTextIndexes(textIndexes);
+
+        repo.save(textMarker);
     }
 
+    private void documentRemoved(@NonNull Document removedDocument, String dbName, String collectionName) {
+        String refId = removedDocument.getObjectId("_id").toString();
+        repo.deleteByDbNameAndCollectionNameAndRefId(dbName, collectionName, refId);
+    }
 }
