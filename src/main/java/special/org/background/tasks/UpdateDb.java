@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
+@SuppressWarnings("unused")
 public class UpdateDb {
     private static final Logger LOGGER_UPDATE_DB = LoggerFactory.getLogger(UpdateDb.class);
 
@@ -55,8 +56,8 @@ public class UpdateDb {
             for (var collection : collections) {
                 this.scheduler.scheduleAtFixedRate(
                         () -> {
+                            LOGGER_UPDATE_DB.info("Registering |{}|-|{}| for watching", dbName, collection.getCollectionName());
                             this.watchCollection(template, collection);
-                            LOGGER_UPDATE_DB.info("Registered |{}|-|{}| for watching", dbName, collection.getCollectionName());
                         },
                         Duration.ofSeconds(30)
                 );
