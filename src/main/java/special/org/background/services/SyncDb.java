@@ -13,6 +13,7 @@ import special.org.endpoints.search.fulltext.TextIndexMap;
 import special.org.endpoints.search.fulltext.TextMarker;
 import special.org.endpoints.search.fulltext.TextSearchRepo;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -58,7 +59,17 @@ public class SyncDb {
             TextIndexMap textIndexMap = new TextIndexMap();
             for (String key : collectionConfig.getTextFields()) {
                 try {
-                    textIndexMap.put(key, document.getString(key));
+                    String[] keyAsParts = key.split("\\.");
+                    String lastKey = keyAsParts[keyAsParts.length - 1];
+
+                    var middleKeys = Arrays.stream(keyAsParts).limit(keyAsParts.length - 1).toList();
+
+                    Document currentDocument = document;
+                    for (var part : middleKeys) {
+                        currentDocument = (Document) currentDocument.get(part);
+                    }
+
+                    textIndexMap.put(key, currentDocument.getString(lastKey));
                 } catch (Exception e) {
                     textIndexMap.put(key, "");
                 }
