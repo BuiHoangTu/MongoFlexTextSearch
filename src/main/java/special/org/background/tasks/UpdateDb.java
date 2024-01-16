@@ -60,7 +60,7 @@ public class UpdateDb {
             var collections = details.get(dbName).getCollections();
             var template = templates.get(dbName);
             for (var collection : collections) {
-                this.scheduler.scheduleAtFixedRate(
+                this.scheduler.scheduleWithFixedDelay(
                         () -> {
                             LOGGER_UPDATE_DB.info("Registering |{}|->|{}| for watching", dbName, collection.getName());
                             this.watchCollection(template, collection);
@@ -70,6 +70,8 @@ public class UpdateDb {
             }
         }
         LOGGER_UPDATE_DB.info("Sync existing data");
+
+        // make sure mydb is up-to-date with source at start-up
         syncDb.syncDb();
     }
 

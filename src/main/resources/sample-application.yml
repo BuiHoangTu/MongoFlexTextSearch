@@ -13,6 +13,7 @@ spring:
       port: 123123 # our_port
       database: our_db_for_saving_text_search_index
       authentication-database: our_auth_db
+      mapKeyDotReplacement: ->
 
 # This is the database that need watching (using their authentication - at least read permission)
 special:

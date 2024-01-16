@@ -23,4 +23,6 @@ public class ResourceMongo {
     private String database;
     @Value("${spring.data.mongodb.authentication-database}")
     private String authenticationDatabase;
+    @Value("${spring.data.mongodb.mapKeyDotReplacement}")
+    private String mapKeyDotReplacement;
 }
