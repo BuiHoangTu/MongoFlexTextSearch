@@ -1,8 +1,9 @@
-package special.org.background.tasks;
+package special.org.background.services;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Field;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import special.org.beans.MongodbDetailMap;
@@ -22,12 +23,14 @@ public class SyncDb {
     private final MongodbTemplateMap templates;
     private final MongodbDetailMap details;
     private final TextSearchRepo repo;
+    private final BackgroundService mainService;
 
     @Autowired
-    public SyncDb(MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo) {
+    public SyncDb(MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, BackgroundService mainService) {
         this.templates = templates;
         this.details = details;
         this.repo = repo;
+        this.mainService = mainService;
     }
 
     public void syncDb() {
@@ -42,16 +45,16 @@ public class SyncDb {
 
     private void syncCollection(MongoTemplate template, WatchingCollectionConfig collectionConfig) {
         Query query = new Query();
-        query.fields().include("_id");
+        Field fields = query.fields();
 
-        collectionConfig.getTextFields().forEach(fieldName -> {
-            query.fields().include(fieldName);
-        });
+        fields.include(collectionConfig.getIdName());
+
+        collectionConfig.getTextFields().forEach(fields::include);
 
         List<Document> res = template.find(query, Document.class, collectionConfig.getName());
 
         for (var document : res) {
-            String refId = document.getObjectId("_id").toString();
+            String refId = mainService.getId(document, collectionConfig.getIdName());
             TextIndexMap textIndexMap = new TextIndexMap();
             for (String key : collectionConfig.getTextFields()) {
                 try {

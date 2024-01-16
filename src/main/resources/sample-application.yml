@@ -27,10 +27,12 @@ special:
           authentication-database: auth_db_name
           collections:
             - name: collection1
+              id-name: _id # optional
               text-fields:
                 - field1
                 - field2
             - name: collection2
+              id-name: specialIdName # specifier if id-name is difference from default
               text-fields:
                 - field3.subfield
                 - field4

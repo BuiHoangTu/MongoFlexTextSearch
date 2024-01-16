@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
+import special.org.background.services.BackgroundService;
+import special.org.background.services.SyncDb;
 import special.org.beans.MongodbDetailMap;
 import special.org.beans.MongodbTemplateMap;
 import special.org.configs.subconfig.WatchingCollectionConfig;
@@ -38,15 +40,17 @@ public class UpdateDb {
     private final MongodbDetailMap details;
     private final TextSearchRepo repo;
     private final SyncDb syncDb;
+    private final BackgroundService mainService;
 
 
     @Autowired
-    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, SyncDb syncDb) {
+    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, SyncDb syncDb, BackgroundService mainService) {
         this.scheduler = scheduler;
         this.templates = templates;
         this.details = details;
         this.repo = repo;
         this.syncDb = syncDb;
+        this.mainService = mainService;
     }
 
     // run this on start-up
@@ -58,7 +62,7 @@ public class UpdateDb {
             for (var collection : collections) {
                 this.scheduler.scheduleAtFixedRate(
                         () -> {
-                            LOGGER_UPDATE_DB.info("Registering |{}|-|{}| for watching", dbName, collection.getName());
+                            LOGGER_UPDATE_DB.info("Registering |{}|->|{}| for watching", dbName, collection.getName());
                             this.watchCollection(template, collection);
                         },
                         Duration.ofSeconds(30)
@@ -112,14 +116,14 @@ public class UpdateDb {
                 }
                 case DELETE -> {
                     LOGGER_UPDATE_DB.info("{} has removed collection", collectionConfig.getName());
-                    documentRemoved(document, mongoTemplate.getDb().getName(), collectionConfig.getName());
+                    documentRemoved(document, mongoTemplate.getDb().getName(), collectionConfig);
                 }
             }
         }
     }
 
     private void documentInserted(@NonNull Document insertedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
-        String refId = insertedDocument.getObjectId("_id").toString();
+        String refId = mainService.getId(insertedDocument, collectionConfig.getIdName());
         TextIndexMap textIndexes = new TextIndexMap();
 
         for (String fieldName : collectionConfig.getTextFields()) {
@@ -144,7 +148,7 @@ public class UpdateDb {
     }
 
     private void documentModified(@NonNull Document modifiedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
-        String refId = modifiedDocument.getObjectId("_id").toString();
+        String refId = mainService.getId(modifiedDocument, collectionConfig.getIdName());
         TextIndexMap textIndexes = new TextIndexMap();
 
         for (String fieldName : collectionConfig.getTextFields()) {
@@ -174,8 +178,8 @@ public class UpdateDb {
         repo.save(textMarker);
     }
 
-    private void documentRemoved(@NonNull Document removedDocument, String dbName, String collectionName) {
-        String refId = removedDocument.getObjectId("_id").toString();
-        repo.deleteByDbNameAndCollectionNameAndRefId(dbName, collectionName, refId);
+    private void documentRemoved(@NonNull Document removedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
+        String refId = mainService.getId(removedDocument, collectionConfig.getIdName());
+        repo.deleteByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getName(), refId);
     }
 }
