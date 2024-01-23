@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import special.org.configs.subconfig.WatchingDatabaseConfig;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Shouldn't use this directly
@@ -21,18 +22,18 @@ public class ResourceWatching {
     private static final Logger LOGGER_RESOURCE_WATCHER = LoggerFactory.getLogger(ResourceWatching.class);
 
     private SyncMode syncMode = SyncMode.INTERVAL;
-    private int syncInterval = 60;
+    private int syncInterval = 300;
     private List<WatchingDatabaseConfig> databases;
 
     @ConstructorBinding
     public ResourceWatching(
             List<WatchingDatabaseConfig> databases,
-            SyncMode syncMode,
-            int syncInterval
+            Optional<SyncMode> syncMode,
+            Optional<Integer> syncInterval
     ) {
         this.databases = databases;
-        this.syncMode = syncMode;
-        this.syncInterval = syncInterval;
+        this.syncMode = syncMode.orElse(SyncMode.STARTUP);
+        this.syncInterval = syncInterval.orElse(300);
     }
 
     @PostConstruct
@@ -41,7 +42,7 @@ public class ResourceWatching {
     }
 
     public enum SyncMode {
-        NO,
+        FALSE,
         STARTUP,
         INTERVAL
     }

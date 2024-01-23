@@ -69,7 +69,7 @@ public class UpdateDb {
 
         // make sure mydb is up-to-date with source at start-up
         switch (resourceWatching.getSyncMode()) {
-            case NO -> LOGGER_UPDATE_DB.info("Sync data at startup is disabled");
+            case FALSE -> LOGGER_UPDATE_DB.info("Sync data at startup is disabled");
 
             case STARTUP -> {
                 LOGGER_UPDATE_DB.info("Sync existing data");
