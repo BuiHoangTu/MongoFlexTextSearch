@@ -13,12 +13,18 @@ spring:
       port: 123123 # our_port
       database: our_db_for_saving_text_search_index
       authentication-database: our_auth_db
-      mapKeyDotReplacement: ->
+      mapKeyDotReplacement: -DOT-
 
 # This is the database that need watching (using their authentication - at least read permission)
 special:
   org:
     watching:
+      ### How you want to sync with original databases
+      ### 1. NO - do not update, use existing data
+      ### 2. STARTUP - only update when application start
+      ### 3. INTERVAL - update every syncInterval seconds
+      syncMode: NO
+      syncInterval: 20
       databases:
         - database: db_name
           host: host_name

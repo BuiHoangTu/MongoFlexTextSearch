@@ -1,6 +1,5 @@
 package special.org.endpoints.search.fulltext;
 
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +35,8 @@ public class TextSearchController {
             @RequestParam(value = "limit", defaultValue = "10") int limit
     ) {
         List<TextMarker> res = service.searchTextWithAllWordCount(searchPhrase, limit);
-        OPEN_CONTROLLER_LOG.info("combine-reduced-search got keyText:" + searchPhrase);
-        OPEN_CONTROLLER_LOG.info(res.toString());
+        OPEN_CONTROLLER_LOG.debug("combine-reduced-search got keyText:" + searchPhrase);
+        OPEN_CONTROLLER_LOG.debug(res.toString());
         return ResponseEntity.ok(res);
     }
 

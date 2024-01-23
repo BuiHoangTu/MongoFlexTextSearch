@@ -9,11 +9,7 @@ import org.springframework.stereotype.Service;
 import special.org.beans.MongodbDetailMap;
 import special.org.beans.MongodbTemplateMap;
 import special.org.configs.subconfig.WatchingCollectionConfig;
-import special.org.endpoints.search.fulltext.TextIndexMap;
-import special.org.endpoints.search.fulltext.TextMarker;
-import special.org.endpoints.search.fulltext.TextSearchRepo;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -23,15 +19,13 @@ import java.util.List;
 public class SyncDb {
     private final MongodbTemplateMap templates;
     private final MongodbDetailMap details;
-    private final TextSearchRepo repo;
-    private final IdService mainService;
+    private final CudTextMarker cudTextMarker;
 
     @Autowired
-    public SyncDb(MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, IdService mainService) {
+    public SyncDb(MongodbTemplateMap templates, MongodbDetailMap details, CudTextMarker cudTextMarker) {
         this.templates = templates;
         this.details = details;
-        this.repo = repo;
-        this.mainService = mainService;
+        this.cudTextMarker = cudTextMarker;
     }
 
     public void syncDb() {
@@ -55,40 +49,7 @@ public class SyncDb {
         List<Document> res = template.find(query, Document.class, collectionConfig.getName());
 
         for (var document : res) {
-            String refId = mainService.getId(document, collectionConfig.getIdName());
-            TextIndexMap textIndexMap = new TextIndexMap();
-            for (String key : collectionConfig.getTextFields()) {
-                try {
-                    String[] keyAsParts = key.split("\\.");
-                    String lastKey = keyAsParts[keyAsParts.length - 1];
-
-                    var middleKeys = Arrays.stream(keyAsParts).limit(keyAsParts.length - 1).toList();
-
-                    Document currentDocument = document;
-                    for (var part : middleKeys) {
-                        currentDocument = (Document) currentDocument.get(part);
-                    }
-
-                    textIndexMap.put(key, currentDocument.getString(lastKey));
-                } catch (Exception e) {
-                    textIndexMap.put(key, "");
-                }
-            }
-
-            var existing = repo.findByDbNameAndCollectionNameAndRefId(template.getDb().getName(), collectionConfig.getName(), refId);
-            if (existing.isPresent()) {
-                var updating = existing.get();
-                updating.setTextIndexes(textIndexMap);
-                repo.save(updating);
-            } else {
-                TextMarker textMarker = new TextMarker();
-                textMarker.setDbName(template.getDb().getName());
-                textMarker.setCollectionName(collectionConfig.getName());
-                textMarker.setRefId(refId);
-                textMarker.setTextIndexes(textIndexMap);
-
-                repo.insert(textMarker);
-            }
+            cudTextMarker.upsertDocument(document, template.getDb().getName(), collectionConfig);
         }
     }
 }

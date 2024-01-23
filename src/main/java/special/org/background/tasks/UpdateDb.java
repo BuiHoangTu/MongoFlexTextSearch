@@ -16,14 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
-import special.org.background.services.IdService;
+import special.org.background.services.CudTextMarker;
 import special.org.background.services.SyncDb;
 import special.org.beans.MongodbDetailMap;
 import special.org.beans.MongodbTemplateMap;
+import special.org.configs.ResourceWatching;
 import special.org.configs.subconfig.WatchingCollectionConfig;
-import special.org.endpoints.search.fulltext.TextIndexMap;
-import special.org.endpoints.search.fulltext.TextMarker;
-import special.org.endpoints.search.fulltext.TextSearchRepo;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -38,19 +36,26 @@ public class UpdateDb {
     private final TaskScheduler scheduler;
     private final MongodbTemplateMap templates;
     private final MongodbDetailMap details;
-    private final TextSearchRepo repo;
     private final SyncDb syncDb;
-    private final IdService mainService;
+    private final ResourceWatching resourceWatching;
+    private final CudTextMarker cudTextMarker;
 
 
     @Autowired
-    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, SyncDb syncDb, IdService mainService) {
+    public UpdateDb(
+            TaskScheduler scheduler,
+            MongodbTemplateMap templates,
+            MongodbDetailMap details,
+            SyncDb syncDb,
+            ResourceWatching resourceWatching,
+            CudTextMarker cudTextMarker
+    ) {
         this.scheduler = scheduler;
         this.templates = templates;
         this.details = details;
-        this.repo = repo;
         this.syncDb = syncDb;
-        this.mainService = mainService;
+        this.resourceWatching = resourceWatching;
+        this.cudTextMarker = cudTextMarker;
     }
 
     // run this on start-up
@@ -60,19 +65,34 @@ public class UpdateDb {
             var collections = details.get(dbName).getCollections();
             var template = templates.get(dbName);
             for (var collection : collections) {
+                LOGGER_UPDATE_DB.info("Registering |{}|->|{}| for watching", dbName, collection.getName());
                 this.scheduler.scheduleWithFixedDelay(
-                        () -> {
-                            LOGGER_UPDATE_DB.info("Registering |{}|->|{}| for watching", dbName, collection.getName());
-                            this.watchCollection(template, collection);
-                        },
+                        () -> this.watchCollection(template, collection),
                         Duration.ofSeconds(30)
                 );
             }
         }
-        LOGGER_UPDATE_DB.info("Sync existing data");
 
         // make sure mydb is up-to-date with source at start-up
-        syncDb.syncDb();
+        switch (resourceWatching.getSyncMode()) {
+            case NO -> LOGGER_UPDATE_DB.info("Sync data at startup is disabled");
+
+            case STARTUP -> {
+                LOGGER_UPDATE_DB.info("Sync existing data");
+                syncDb.syncDb();
+            }
+
+            case INTERVAL -> {
+                LOGGER_UPDATE_DB.info("Sync data every {} seconds", resourceWatching.getSyncInterval());
+                this.scheduler.scheduleWithFixedDelay(
+                        () -> {
+                            LOGGER_UPDATE_DB.info("Sync existing data");
+                            syncDb.syncDb();
+                        },
+                        Duration.ofSeconds(resourceWatching.getSyncInterval())
+                );
+            }
+        }
     }
 
     private void watchCollection(MongoTemplate mongoTemplate, WatchingCollectionConfig collectionConfig) {
@@ -109,79 +129,31 @@ public class UpdateDb {
             if (document == null) continue;
             switch (changeEvent.getOperationType()) {
                 case INSERT -> {
-                    LOGGER_UPDATE_DB.info("{} has new collection", collectionConfig.getName());
+                    LOGGER_UPDATE_DB.info("{} has new document", collectionConfig.getName());
                     documentInserted(document, mongoTemplate.getDb().getName(), collectionConfig);
                 }
                 case UPDATE -> {
-                    LOGGER_UPDATE_DB.info("{} has modified collection", collectionConfig.getName());
+                    LOGGER_UPDATE_DB.info("{} has modified document", collectionConfig.getName());
                     documentModified(document, mongoTemplate.getDb().getName(), collectionConfig);
                 }
                 case DELETE -> {
-                    LOGGER_UPDATE_DB.info("{} has removed collection", collectionConfig.getName());
+                    LOGGER_UPDATE_DB.info("{} has removed document", collectionConfig.getName());
                     documentRemoved(document, mongoTemplate.getDb().getName(), collectionConfig);
                 }
+                default -> LOGGER_UPDATE_DB.info("{} has {}", collectionConfig.getName(), changeEvent.getOperationType());
             }
         }
     }
 
     private void documentInserted(@NonNull Document insertedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
-        String refId = mainService.getId(insertedDocument, collectionConfig.getIdName());
-        TextIndexMap textIndexes = new TextIndexMap();
-
-        for (String fieldName : collectionConfig.getTextFields()) {
-            String value;
-            try {
-                value = insertedDocument.getString(fieldName);
-            } catch (ClassCastException e) {
-                value = "";
-            }
-
-            textIndexes.put(fieldName, value);
-        }
-
-        // Create a new TextMarker instance
-        TextMarker textMarker = new TextMarker();
-        textMarker.setDbName(dbName);
-        textMarker.setCollectionName(collectionConfig.getName());
-        textMarker.setRefId(refId);
-        textMarker.setTextIndexes(textIndexes);
-
-        repo.insert(textMarker);
+        cudTextMarker.createDocument(insertedDocument, dbName, collectionConfig);
     }
 
     private void documentModified(@NonNull Document modifiedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
-        String refId = mainService.getId(modifiedDocument, collectionConfig.getIdName());
-        TextIndexMap textIndexes = new TextIndexMap();
-
-        for (String fieldName : collectionConfig.getTextFields()) {
-            String value;
-            try {
-                value = modifiedDocument.getString(fieldName);
-            } catch (ClassCastException e) {
-                value = "";
-            }
-
-            textIndexes.put(fieldName, value);
-        }
-
-        // Create a new TextMarker instance
-        TextMarker textMarker;
-        var existing = repo.findByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getName(), refId);
-        if (existing.isPresent()) {
-            textMarker = existing.get();
-        } else {
-            textMarker = new TextMarker();
-            textMarker.setDbName(dbName);
-            textMarker.setCollectionName(collectionConfig.getName());
-            textMarker.setRefId(refId);
-        }
-        textMarker.setTextIndexes(textIndexes);
-
-        repo.save(textMarker);
+        cudTextMarker.upsertDocument(modifiedDocument, dbName, collectionConfig);
     }
 
     private void documentRemoved(@NonNull Document removedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
-        String refId = mainService.getId(removedDocument, collectionConfig.getIdName());
-        repo.deleteByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getName(), refId);
+        cudTextMarker.deleteDocument(removedDocument, dbName, collectionConfig);
     }
 }
