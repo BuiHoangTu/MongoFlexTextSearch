@@ -2,6 +2,7 @@ package special.org.background.services;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import org.bson.Document;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.messaging.*;
@@ -10,6 +11,7 @@ import special.org.configs.subconfig.WatchingCollectionConfig;
 
 import java.util.function.Consumer;
 
+@Primary
 @Service
 public class CollectionWatcher2 implements CollectionWatcher {
     public void watchCollection(

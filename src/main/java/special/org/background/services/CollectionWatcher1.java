@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-@Primary
 @Service
 public class CollectionWatcher1 implements CollectionWatcher {
 

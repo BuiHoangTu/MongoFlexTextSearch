@@ -29,5 +29,5 @@ public interface TextSearchRepo extends MongoRepository<TextMarker, String> {
 
     Optional<TextMarker> findByDbNameAndCollectionNameAndRefId(String dbName, String collectionName, String refId);
 
-    void deleteByDbNameAndCollectionNameAndRefId(String dbName, String collectionName, String refId);
+    long deleteTextMarkerByDbNameAndCollectionNameAndRefId(String dbName, String collectionName, String refId);
 }

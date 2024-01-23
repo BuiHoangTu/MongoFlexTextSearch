@@ -33,7 +33,7 @@ public class CudTextMarker {
 
     public void deleteDocument(@NonNull Document originalDocument, String dbName, WatchingCollectionConfig collectionConfig) {
         String refId = idService.getId(originalDocument, collectionConfig.getIdName());
-        textRepo.deleteByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getName(), refId);
+        textRepo.deleteTextMarkerByDbNameAndCollectionNameAndRefId(dbName, collectionConfig.getName(), refId);
     }
 
     private void _upsertDocument(
