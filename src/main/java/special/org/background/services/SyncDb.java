@@ -24,10 +24,10 @@ public class SyncDb {
     private final MongodbTemplateMap templates;
     private final MongodbDetailMap details;
     private final TextSearchRepo repo;
-    private final BackgroundService mainService;
+    private final IdService mainService;
 
     @Autowired
-    public SyncDb(MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, BackgroundService mainService) {
+    public SyncDb(MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, IdService mainService) {
         this.templates = templates;
         this.details = details;
         this.repo = repo;

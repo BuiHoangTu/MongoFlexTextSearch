@@ -4,7 +4,7 @@ import org.bson.Document;
 import org.springframework.stereotype.Service;
 
 @Service
-public class BackgroundService {
+public class IdService {
     /**
      * Extract id from document as String
      * @param document full data

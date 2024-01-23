@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
-import special.org.background.services.BackgroundService;
+import special.org.background.services.IdService;
 import special.org.background.services.SyncDb;
 import special.org.beans.MongodbDetailMap;
 import special.org.beans.MongodbTemplateMap;
@@ -40,11 +40,11 @@ public class UpdateDb {
     private final MongodbDetailMap details;
     private final TextSearchRepo repo;
     private final SyncDb syncDb;
-    private final BackgroundService mainService;
+    private final IdService mainService;
 
 
     @Autowired
-    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, SyncDb syncDb, BackgroundService mainService) {
+    public UpdateDb(TaskScheduler scheduler, MongodbTemplateMap templates, MongodbDetailMap details, TextSearchRepo repo, SyncDb syncDb, IdService mainService) {
         this.scheduler = scheduler;
         this.templates = templates;
         this.details = details;
