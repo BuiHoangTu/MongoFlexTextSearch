@@ -107,7 +107,8 @@ public class UpdateDb {
                         }
                         case DELETE -> {
                             LOGGER_UPDATE_DB.info("{} has removed document", collectionConfig.getName());
-                            documentRemoved(document, dbName, collectionConfig);
+                            var docB4Change = changeEvent.getFullDocumentBeforeChange();
+                            documentRemoved(docB4Change, dbName, collectionConfig);
                         }
                         default -> LOGGER_UPDATE_DB.info("{} has {}", collectionConfig.getName(), changeEvent.getOperationType());
                     }
@@ -123,7 +124,11 @@ public class UpdateDb {
         cudTextMarker.upsertDocument(modifiedDocument, dbName, collectionConfig);
     }
 
-    private void documentRemoved(@NonNull Document removedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
+    private void documentRemoved(Document removedDocument, String dbName, WatchingCollectionConfig collectionConfig) {
+        if (removedDocument == null) {
+            LOGGER_UPDATE_DB.error("Cant get Document before change");
+            return;
+        }
         cudTextMarker.deleteDocument(removedDocument, dbName, collectionConfig);
     }
 }

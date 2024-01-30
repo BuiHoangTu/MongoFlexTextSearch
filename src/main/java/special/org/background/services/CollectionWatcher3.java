@@ -4,6 +4,7 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -15,6 +16,7 @@ import special.org.configs.subconfig.WatchingCollectionConfig;
 import java.util.Map;
 import java.util.function.Consumer;
 
+@Primary
 @Service
 public class CollectionWatcher3 implements CollectionWatcher {
     private static final Logger LOGGER_COLLECTION_WATCHER_3 = LoggerFactory.getLogger(CollectionWatcher3.class);

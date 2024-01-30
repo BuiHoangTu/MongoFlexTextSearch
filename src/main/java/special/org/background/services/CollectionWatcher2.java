@@ -20,7 +20,6 @@ import special.org.configs.subconfig.WatchingCollectionConfig;
 import java.util.Map;
 import java.util.function.Consumer;
 
-@Primary
 @Service
 public class CollectionWatcher2 implements CollectionWatcher {
     private static final Logger LOGGER_COLLECTION_WATCHER_2 = LoggerFactory.getLogger(CollectionWatcher2.class);
