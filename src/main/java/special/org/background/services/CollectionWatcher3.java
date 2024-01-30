@@ -2,23 +2,40 @@ package special.org.background.services;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
-import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.messaging.*;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import special.org.beans.MongodbReactiveTemplateMap;
 import special.org.configs.subconfig.WatchingCollectionConfig;
 
+import java.util.Map;
 import java.util.function.Consumer;
 
-public class CollectionWatcher3 {
+@Service
+public class CollectionWatcher3 implements CollectionWatcher {
+    private static final Logger LOGGER_COLLECTION_WATCHER_3 = LoggerFactory.getLogger(CollectionWatcher3.class);
+
+    private final MongodbReactiveTemplateMap mongoTemplateMap;
+
+    public CollectionWatcher3(MongodbReactiveTemplateMap mongoTemplateMap) {
+        this.mongoTemplateMap = mongoTemplateMap;
+    }
+
     public void watchCollection(
-            ReactiveMongoTemplate mongoTemplate,
+            String dbName,
             WatchingCollectionConfig collectionConfig,
             Consumer<ChangeStreamDocument<Document>> changeStreamDocumentConsumer
     ) {
+        var mongoTemplate = mongoTemplateMap.get(dbName);
+        if (mongoTemplate == null) {
+            LOGGER_COLLECTION_WATCHER_3.error("The database {} does not exist in bean {}", dbName, mongoTemplateMap.getClass().getName());
+            return;
+        }
+
         ReactiveMongoTemplate reactiveMongoTemplate = new ReactiveMongoTemplate(mongoTemplate.getMongoDatabaseFactory());
         Flux<ChangeStreamEvent<Document>> flux = reactiveMongoTemplate
                 .changeStream(Document.class)
@@ -26,5 +43,6 @@ public class CollectionWatcher3 {
 //                .filter((Aggregation) null)
                 .listen();
         flux.doOnNext(x -> System.out.println(x)).subscribe();
+//        flux.
     }
 }

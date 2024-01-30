@@ -6,10 +6,9 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
-import special.org.background.services.CollectionWatcher;
+import special.org.background.services.CollectionWatcher3;
 import special.org.background.services.CudTextMarker;
 import special.org.background.services.SyncDb;
 import special.org.beans.MongodbDetailMap;
@@ -20,7 +19,6 @@ import special.org.configs.subconfig.WatchingCollectionConfig;
 import java.time.Duration;
 
 @Component
-@SuppressWarnings("unused")
 public class UpdateDb {
     private static final Logger LOGGER_UPDATE_DB = LoggerFactory.getLogger(UpdateDb.class);
 
@@ -30,7 +28,7 @@ public class UpdateDb {
     private final SyncDb syncDb;
     private final ResourceWatching resourceWatching;
     private final CudTextMarker cudTextMarker;
-    private final CollectionWatcher collectionWatcher;
+    private final CollectionWatcher3 collectionWatcher3;
 
 
     @Autowired
@@ -41,7 +39,7 @@ public class UpdateDb {
             SyncDb syncDb,
             ResourceWatching resourceWatching,
             CudTextMarker cudTextMarker,
-            CollectionWatcher collectionWatcher
+            CollectionWatcher3 collectionWatcher3
     ) {
         this.scheduler = scheduler;
         this.templates = templates;
@@ -49,7 +47,7 @@ public class UpdateDb {
         this.syncDb = syncDb;
         this.resourceWatching = resourceWatching;
         this.cudTextMarker = cudTextMarker;
-        this.collectionWatcher = collectionWatcher;
+        this.collectionWatcher3 = collectionWatcher3;
     }
 
     // run this on start-up
@@ -57,11 +55,10 @@ public class UpdateDb {
     public void updateDB() {
         for (var dbName : this.templates.keySet()) {
             var collections = details.get(dbName).getCollections();
-            var template = templates.get(dbName);
             for (var collection : collections) {
                 LOGGER_UPDATE_DB.info("Registering |{}|->|{}| for watching", dbName, collection.getName());
                 this.scheduler.scheduleWithFixedDelay(
-                        () -> this.watchCollection(template, collection),
+                        () -> this.watchCollection(dbName, collection),
                         Duration.ofSeconds(30)
                 );
             }
@@ -89,9 +86,9 @@ public class UpdateDb {
         }
     }
 
-    private void watchCollection(MongoTemplate mongoTemplate, WatchingCollectionConfig collectionConfig) {
-        collectionWatcher.watchCollection(
-                mongoTemplate,
+    private void watchCollection(String dbName, WatchingCollectionConfig collectionConfig) {
+        collectionWatcher3.watchCollection(
+                dbName,
                 collectionConfig,
                 (changeEvent) -> {
                     if (changeEvent == null || changeEvent.getOperationType() == null) return;
@@ -102,15 +99,15 @@ public class UpdateDb {
                     switch (changeEvent.getOperationType()) {
                         case INSERT -> {
                             LOGGER_UPDATE_DB.info("{} has new document", collectionConfig.getName());
-                            documentInserted(document, mongoTemplate.getDb().getName(), collectionConfig);
+                            documentInserted(document, dbName, collectionConfig);
                         }
                         case UPDATE -> {
                             LOGGER_UPDATE_DB.info("{} has modified document", collectionConfig.getName());
-                            documentModified(document, mongoTemplate.getDb().getName(), collectionConfig);
+                            documentModified(document, dbName, collectionConfig);
                         }
                         case DELETE -> {
                             LOGGER_UPDATE_DB.info("{} has removed document", collectionConfig.getName());
-                            documentRemoved(document, mongoTemplate.getDb().getName(), collectionConfig);
+                            documentRemoved(document, dbName, collectionConfig);
                         }
                         default -> LOGGER_UPDATE_DB.info("{} has {}", collectionConfig.getName(), changeEvent.getOperationType());
                     }

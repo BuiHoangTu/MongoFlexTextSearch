@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 
 public interface CollectionWatcher {
     void watchCollection(
-            MongoTemplate mongoTemplate,
+            String dbName,
             WatchingCollectionConfig collectionConfig,
             Consumer<ChangeStreamDocument<Document>> changeStreamDocumentConsumer
     );
