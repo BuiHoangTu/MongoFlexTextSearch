@@ -48,7 +48,6 @@ public class TextMarker {
     private List<String> textIndexesAsList;
 
 
-    @SuppressWarnings("unused")
     public TextMarker(String dbName, String collectionName, String refId, TextIndexMap textIndexes, Collection<String> textIndexesAsList) {
         this.dbName = dbName;
         this.collectionName = collectionName;
@@ -65,7 +64,6 @@ public class TextMarker {
      * DO NOT USE. Use setTextIndexes
      * @param textIndexesAsList N/A
      */
-    @SuppressWarnings("unused")
     public void setTextIndexesAsList(Collection<String> textIndexesAsList) {
         // do nothing because real value is from textIndexes
     }

@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
-import special.org.background.services.CollectionWatcher3;
+import special.org.background.services.CollectionWatcher;
 import special.org.background.services.CudTextMarker;
 import special.org.background.services.SyncDb;
 import special.org.beans.MongodbDetailMap;
@@ -28,7 +28,7 @@ public class UpdateDb {
     private final SyncDb syncDb;
     private final ResourceWatching resourceWatching;
     private final CudTextMarker cudTextMarker;
-    private final CollectionWatcher3 collectionWatcher3;
+    private final CollectionWatcher collectionWatcher;
 
 
     @Autowired
@@ -39,7 +39,7 @@ public class UpdateDb {
             SyncDb syncDb,
             ResourceWatching resourceWatching,
             CudTextMarker cudTextMarker,
-            CollectionWatcher3 collectionWatcher3
+            CollectionWatcher collectionWatcher
     ) {
         this.scheduler = scheduler;
         this.templates = templates;
@@ -47,7 +47,7 @@ public class UpdateDb {
         this.syncDb = syncDb;
         this.resourceWatching = resourceWatching;
         this.cudTextMarker = cudTextMarker;
-        this.collectionWatcher3 = collectionWatcher3;
+        this.collectionWatcher = collectionWatcher;
     }
 
     // run this on start-up
@@ -87,28 +87,36 @@ public class UpdateDb {
     }
 
     private void watchCollection(String dbName, WatchingCollectionConfig collectionConfig) {
-        collectionWatcher3.watchCollection(
+        collectionWatcher.watchCollection(
                 dbName,
                 collectionConfig,
                 (changeEvent) -> {
-                    if (changeEvent == null || changeEvent.getOperationType() == null) return;
+                    if (changeEvent == null) {
+                        LOGGER_UPDATE_DB.info("Empty change event");
+                        return;
+                    }
+                    if (changeEvent.getOperationType() == null) {
+                        LOGGER_UPDATE_DB.info("Unknown OperationType");
+                        return;
+                    }
 
                     // Process the change event here
                     Document document = changeEvent.getFullDocument();
-                    if (document == null) return;
                     switch (changeEvent.getOperationType()) {
                         case INSERT -> {
                             LOGGER_UPDATE_DB.info("{} has new document", collectionConfig.getName());
+                            assert document != null;
                             documentInserted(document, dbName, collectionConfig);
                         }
                         case UPDATE -> {
                             LOGGER_UPDATE_DB.info("{} has modified document", collectionConfig.getName());
+                            assert document != null;
                             documentModified(document, dbName, collectionConfig);
                         }
                         case DELETE -> {
                             LOGGER_UPDATE_DB.info("{} has removed document", collectionConfig.getName());
-                            var docB4Change = changeEvent.getFullDocumentBeforeChange();
-                            documentRemoved(docB4Change, dbName, collectionConfig);
+                            assert changeEvent.getDocumentKey() != null;
+                            documentRemoved(Document.parse(changeEvent.getDocumentKey().toJson()), dbName, collectionConfig);
                         }
                         default -> LOGGER_UPDATE_DB.info("{} has {}", collectionConfig.getName(), changeEvent.getOperationType());
                     }

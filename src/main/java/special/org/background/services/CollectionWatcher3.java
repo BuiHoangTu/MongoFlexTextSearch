@@ -6,14 +6,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import special.org.beans.MongodbReactiveTemplateMap;
 import special.org.configs.subconfig.WatchingCollectionConfig;
 
-import java.util.Map;
 import java.util.function.Consumer;
 
 @Primary
@@ -44,7 +42,9 @@ public class CollectionWatcher3 implements CollectionWatcher {
                 .watchCollection(collectionConfig.getName())
 //                .filter((Aggregation) null)
                 .listen();
-        flux.doOnNext(x -> System.out.println(x)).subscribe();
+        flux.doOnNext(event -> {
+            changeStreamDocumentConsumer.accept(event.getRaw());
+        }).subscribe();
 //        flux.
     }
 }

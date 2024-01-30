@@ -3,6 +3,7 @@ package special.org.background.services;
 import lombok.NonNull;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import special.org.configs.subconfig.WatchingCollectionConfig;
 import special.org.endpoints.search.fulltext.TextIndexMap;
@@ -77,7 +78,11 @@ public class CudTextMarker {
             textMarker.setRefId(refId);
             textMarker.setTextIndexes(textIndexMap);
 
-            textRepo.insert(textMarker);
+            try {
+                textRepo.insert(textMarker);
+            } catch (DuplicateKeyException ignored) {
+
+            }
         }
     }
 
