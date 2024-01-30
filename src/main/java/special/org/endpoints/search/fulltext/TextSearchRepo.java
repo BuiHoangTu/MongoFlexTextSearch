@@ -2,6 +2,7 @@ package special.org.endpoints.search.fulltext;
 
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import special.org.models.TextMarker;
 
 import java.util.List;
 import java.util.Optional;

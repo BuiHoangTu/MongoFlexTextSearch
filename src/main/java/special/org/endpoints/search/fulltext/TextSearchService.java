@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import special.org.beans.MongodbTemplateMap;
+import special.org.models.TextMarker;
 
 import java.util.List;
 
@@ -13,13 +13,11 @@ public class TextSearchService {
     private static final Logger LOGGER_TEXT_SEARCH_SERVICE = LoggerFactory.getLogger(TextSearchService.class);
 
     private final TextSearchRepo searchRepo;
-    private final MongodbTemplateMap templatesMap;
 
 
     @Autowired
-    public TextSearchService(TextSearchRepo searchRepo, MongodbTemplateMap templatesMap) {
+    public TextSearchService(TextSearchRepo searchRepo) {
         this.searchRepo = searchRepo;
-        this.templatesMap = templatesMap;
     }
 
 

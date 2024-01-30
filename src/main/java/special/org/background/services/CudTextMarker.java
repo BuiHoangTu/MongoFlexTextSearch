@@ -6,9 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import special.org.configs.subconfig.WatchingCollectionConfig;
-import special.org.endpoints.search.fulltext.TextIndexMap;
-import special.org.endpoints.search.fulltext.TextMarker;
 import special.org.endpoints.search.fulltext.TextSearchRepo;
+import special.org.models.TextIndexMap;
+import special.org.models.TextMarker;
 
 import java.util.Arrays;
 import java.util.Optional;

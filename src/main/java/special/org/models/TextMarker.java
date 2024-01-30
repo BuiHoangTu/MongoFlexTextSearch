@@ -1,4 +1,4 @@
-package special.org.endpoints.search.fulltext;
+package special.org.models;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
