@@ -32,8 +32,8 @@ public class ResourceWatching {
             Optional<Integer> syncInterval
     ) {
         this.databases = databases;
-        this.syncMode = syncMode.orElse(SyncMode.STARTUP);
-        this.syncInterval = syncInterval.orElse(300);
+        this.syncMode = syncMode.orElse(this.syncMode);
+        this.syncInterval = syncInterval.orElse(this.syncInterval);
     }
 
     @PostConstruct
