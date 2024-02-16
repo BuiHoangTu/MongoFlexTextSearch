@@ -21,8 +21,10 @@ public class ConfigController {
         return ResponseEntity.ok(resourceWatching);
     }
 
-//    @PostMapping(path = "watching/get")
-//    public ResponseEntity setResourceWatching(ResourceWatching resourceWatching) {
-//        resourceWatching
-//    }
+    @PostMapping(path = "watching/get")
+    public ResponseEntity<?> setResourceWatching(ResourceWatching resourceWatching) {
+        this.resourceWatching.setSyncMode(resourceWatching.getSyncMode());
+        this.resourceWatching.setSyncInterval(resourceWatching.getSyncInterval());
+        this.resourceWatching.setDatabases().getDatabases()(resourceWatching.getDatabases());
+    }
 }

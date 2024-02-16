@@ -1,8 +1,6 @@
 package special.org.configs;
 
-import com.sun.javafx.collections.ObservableSetWrapper;
 import jakarta.annotation.PostConstruct;
-import javafx.collections.ObservableSet;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,10 +8,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.context.annotation.Configuration;
 import special.org.configs.subconfig.WatchingDatabaseConfig;
+import special.org.models.Observable;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Shouldn't use this directly
@@ -26,7 +26,7 @@ public class ResourceWatching {
 
     private SyncMode syncMode = SyncMode.INTERVAL;
     private int syncInterval = 300;
-    private ObservableSet<WatchingDatabaseConfig> databases;
+    private final Set<WatchingDatabaseConfig> databases;
 
     @ConstructorBinding
     public ResourceWatching(
@@ -34,7 +34,7 @@ public class ResourceWatching {
             Optional<SyncMode> syncMode,
             Optional<Integer> syncInterval
     ) {
-        this.databases = new ObservableSetWrapper<>(new HashSet<>(databases));
+        this.databases = new HashSet<>(databases);
         this.syncMode = syncMode.orElse(this.syncMode);
         this.syncInterval = syncInterval.orElse(this.syncInterval);
     }

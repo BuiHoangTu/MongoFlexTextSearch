@@ -2,7 +2,6 @@ package special.org.beans;
 
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
-import javafx.collections.SetChangeListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.stereotype.Component;
@@ -23,7 +22,7 @@ public class MongodbReactiveTemplateMap implements Map<String, ReactiveMongoTemp
     public MongodbReactiveTemplateMap(ResourceWatching resourceWatching) {
         initMap(map, resourceWatching.getDatabases());
 
-        resourceWatching.getDatabases().addListener((SetChangeListener<WatchingDatabaseConfig>) change -> initMap(map, resourceWatching.getDatabases()));
+        resourceWatching.getDatabases().addListener(change -> initMap(map, resourceWatching.getDatabases()));
     }
 
     private static void initMap(Map<String, ReactiveMongoTemplate> map, Set<WatchingDatabaseConfig> data) {
