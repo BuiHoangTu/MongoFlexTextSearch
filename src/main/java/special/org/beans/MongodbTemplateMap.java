@@ -2,10 +2,13 @@ package special.org.beans;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import javafx.collections.SetChangeListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
+import special.org.MongodbUtils;
 import special.org.configs.ResourceWatching;
+import special.org.configs.subconfig.WatchingDatabaseConfig;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,14 +25,23 @@ public class MongodbTemplateMap implements Map<String, MongoTemplate> {
 
     @Autowired
     public MongodbTemplateMap(ResourceWatching resourceWatching) {
-        for (var databaseConfig : resourceWatching.getDatabases()) {
+        initMap(map, resourceWatching.getDatabases());
 
-            String connectionString = "mongodb://" + databaseConfig.getUsername() +
-                    ":" + databaseConfig.getPassword() +
-                    "@" + databaseConfig.getHost() +
-                    ":" + databaseConfig.getPort() +
-                    "/" + databaseConfig.getDatabase() +
-                    "?authSource=" + databaseConfig.getAuthenticationDatabase();
+        resourceWatching.getDatabases().addListener((SetChangeListener<WatchingDatabaseConfig>) change -> initMap(map, resourceWatching.getDatabases()));
+    }
+
+    private static void initMap(Map<String, MongoTemplate> map, Set<WatchingDatabaseConfig> data) {
+        map.clear();
+
+        for (var databaseConfig : data) {
+
+            String connectionString = MongodbUtils.buildMongodbConnectionString(
+                    databaseConfig.getUsername(),
+                    databaseConfig.getPassword(),
+                    databaseConfig.getHost(),
+                    String.valueOf(databaseConfig.getPort()),
+                    databaseConfig.getDatabase(),
+                    databaseConfig.getAuthenticationDatabase());
             MongoClient client = MongoClients.create(connectionString);
             MongoTemplate template = new MongoTemplate(client, databaseConfig.getDatabase());
 

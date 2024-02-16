@@ -38,7 +38,7 @@
             <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
         </dependency>
 
-        <!-- web -->
+        <!-- web endpoints -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -53,6 +53,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- javafx for observable collections -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>17.0.10</version>
+        </dependency>
     </dependencies>
 
     <build>

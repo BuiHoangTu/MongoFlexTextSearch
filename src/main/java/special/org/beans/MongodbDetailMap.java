@@ -1,5 +1,6 @@
 package special.org.beans;
 
+import javafx.collections.SetChangeListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import special.org.configs.ResourceWatching;
@@ -17,11 +18,18 @@ public class MongodbDetailMap implements Map<String, WatchingDatabaseConfig> {
 
     @Autowired
     public MongodbDetailMap(ResourceWatching resourceWatching) {
-        for (var db : resourceWatching.getDatabases()) {
+        initMap(map, resourceWatching.getDatabases());
+
+        resourceWatching.getDatabases().addListener((SetChangeListener<WatchingDatabaseConfig>) change -> initMap(map, resourceWatching.getDatabases()));
+    }
+
+    private static void initMap(Map<String, WatchingDatabaseConfig> map, Set<WatchingDatabaseConfig> data) {
+        map.clear();
+
+        for (var db : data) {
             map.put(db.getDatabase(), db);
         }
     }
-
 
     @Override
     public int size() {

@@ -2,10 +2,13 @@ package special.org.beans;
 
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
+import javafx.collections.SetChangeListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.stereotype.Component;
+import special.org.MongodbUtils;
 import special.org.configs.ResourceWatching;
+import special.org.configs.subconfig.WatchingDatabaseConfig;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -18,14 +21,23 @@ public class MongodbReactiveTemplateMap implements Map<String, ReactiveMongoTemp
 
     @Autowired
     public MongodbReactiveTemplateMap(ResourceWatching resourceWatching) {
-        for (var databaseConfig : resourceWatching.getDatabases()) {
+        initMap(map, resourceWatching.getDatabases());
 
-            String connectionString = "mongodb://" + databaseConfig.getUsername() +
-                    ":" + databaseConfig.getPassword() +
-                    "@" + databaseConfig.getHost() +
-                    ":" + databaseConfig.getPort() +
-                    "/" + databaseConfig.getDatabase() +
-                    "?authSource=" + databaseConfig.getAuthenticationDatabase();
+        resourceWatching.getDatabases().addListener((SetChangeListener<WatchingDatabaseConfig>) change -> initMap(map, resourceWatching.getDatabases()));
+    }
+
+    private static void initMap(Map<String, ReactiveMongoTemplate> map, Set<WatchingDatabaseConfig> data) {
+        map.clear();
+
+        for (var databaseConfig : data) {
+
+            String connectionString = MongodbUtils.buildMongodbConnectionString(
+                    databaseConfig.getUsername(),
+                    databaseConfig.getPassword(),
+                    databaseConfig.getHost(),
+                    String.valueOf(databaseConfig.getPort()),
+                    databaseConfig.getDatabase(),
+                    databaseConfig.getAuthenticationDatabase());
             MongoClient client = MongoClients.create(connectionString);
             ReactiveMongoTemplate template = new ReactiveMongoTemplate(client, databaseConfig.getDatabase());
 
