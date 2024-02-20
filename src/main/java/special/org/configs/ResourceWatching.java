@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.context.annotation.Configuration;
 import special.org.configs.subconfig.WatchingDatabaseConfig;
-import special.org.models.Observable;
 
 import java.util.HashSet;
 import java.util.List;
