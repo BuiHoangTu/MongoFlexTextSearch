@@ -2,7 +2,6 @@ package special.org.beans;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
-import javafx.collections.SetChangeListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
@@ -27,8 +26,7 @@ public class MongodbTemplateMap implements Map<String, MongoTemplate> {
     public MongodbTemplateMap(ResourceWatching resourceWatching) {
         initMap(map, resourceWatching.getDatabases());
 
-        resourceWatching.getDatabases().addListener((SetChangeListener<WatchingDatabaseConfig>) change -> initMap(map, resourceWatching.getDatabases()));
-    }
+        resourceWatching.getDatabases().addListener(change -> initMap(map, resourceWatching.getDatabases()));}
 
     private static void initMap(Map<String, MongoTemplate> map, Set<WatchingDatabaseConfig> data) {
         map.clear();

@@ -8,11 +8,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.context.annotation.Configuration;
 import special.org.configs.subconfig.WatchingDatabaseConfig;
+import special.org.models.ObservableSet;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Shouldn't use this directly
@@ -25,7 +24,7 @@ public class ResourceWatching {
 
     private SyncMode syncMode = SyncMode.INTERVAL;
     private int syncInterval = 300;
-    private final Set<WatchingDatabaseConfig> databases;
+    private final ObservableSet<WatchingDatabaseConfig> databases;
 
     @ConstructorBinding
     public ResourceWatching(
@@ -33,7 +32,7 @@ public class ResourceWatching {
             Optional<SyncMode> syncMode,
             Optional<Integer> syncInterval
     ) {
-        this.databases = new HashSet<>(databases);
+        this.databases = new ObservableSet<>(databases);
         this.syncMode = syncMode.orElse(this.syncMode);
         this.syncInterval = syncInterval.orElse(this.syncInterval);
     }

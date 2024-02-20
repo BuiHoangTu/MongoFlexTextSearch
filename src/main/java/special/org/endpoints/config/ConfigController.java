@@ -10,21 +10,19 @@ import special.org.configs.ResourceWatching;
 @RestController
 @RequestMapping(path = "api/config")
 public class ConfigController {
-    private final ResourceWatching resourceWatching;
+    private final ConfigService configService;
 
-    public ConfigController(ResourceWatching resourceWatching) {
-        this.resourceWatching = resourceWatching;
+    public ConfigController(ConfigService configService) {
+        this.configService = configService;
     }
 
     @GetMapping(path = "watching/get")
     public ResponseEntity<ResourceWatching> getResourceWatching() {
-        return ResponseEntity.ok(resourceWatching);
+        return ResponseEntity.ok(configService.getResourceWatching());
     }
-
+    
     @PostMapping(path = "watching/get")
     public ResponseEntity<?> setResourceWatching(ResourceWatching resourceWatching) {
-        this.resourceWatching.setSyncMode(resourceWatching.getSyncMode());
-        this.resourceWatching.setSyncInterval(resourceWatching.getSyncInterval());
-        this.resourceWatching.setDatabases().getDatabases()(resourceWatching.getDatabases());
+        return ResponseEntity.accepted().body(configService.setResourceWatching());
     }
 }
