@@ -1,4 +1,4 @@
-package special.org.background.services;
+package special.org.background.tasks.services;
 
 import lombok.NonNull;
 import org.bson.Document;

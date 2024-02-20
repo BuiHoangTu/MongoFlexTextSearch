@@ -1,4 +1,4 @@
-package special.org.background.services;
+package special.org.background.tasks.services;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import org.bson.Document;

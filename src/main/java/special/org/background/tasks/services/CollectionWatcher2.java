@@ -1,23 +1,15 @@
-package special.org.background.services;
+package special.org.background.tasks.services;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.mongo.ReactiveMongoClientFactory;
-import org.springframework.context.annotation.Primary;
-import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.messaging.*;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import special.org.beans.MongodbTemplateMap;
 import special.org.configs.subconfig.WatchingCollectionConfig;
 
-import java.util.Map;
 import java.util.function.Consumer;
 
 @Service

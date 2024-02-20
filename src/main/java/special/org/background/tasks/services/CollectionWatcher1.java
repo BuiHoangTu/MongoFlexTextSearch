@@ -1,4 +1,4 @@
-package special.org.background.services;
+package special.org.background.tasks.services;
 
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.MongoCollection;
@@ -10,7 +10,6 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 import special.org.beans.MongodbTemplateMap;
 import special.org.configs.subconfig.WatchingCollectionConfig;
@@ -18,7 +17,6 @@ import special.org.configs.subconfig.WatchingCollectionConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @Service

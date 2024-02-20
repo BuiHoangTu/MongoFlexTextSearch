@@ -1,4 +1,4 @@
-package special.org.background.services;
+package special.org.background.tasks.services;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
