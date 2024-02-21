@@ -19,11 +19,11 @@ public class ExecuteSet<T> implements Set<T> {
         // buffer wait to ensure less Thread operation
         Thread consumingThread = new Thread(() -> {
             while (true) {
-                synchronized (this) {
+                synchronized (itemMap) {
                     var firstEntry = itemMap.entrySet().stream().findFirst().orElse(null);
                     if (firstEntry == null) {
                         try {
-                            wait();
+                            itemMap.wait();
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
@@ -96,7 +96,7 @@ public class ExecuteSet<T> implements Set<T> {
     public boolean add(T t) {
         var wasExisting = itemMap.remove(t) != null;
         itemMap.put(t, getExecTime());
-        synchronized (this) {
+        synchronized (itemMap) {
             notify();
         }
         return !wasExisting;
